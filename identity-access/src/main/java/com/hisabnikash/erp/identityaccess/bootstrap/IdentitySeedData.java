@@ -1,6 +1,5 @@
 package com.hisabnikash.erp.identityaccess.bootstrap;
 
-import com.hisabnikash.erp.identityaccess.authorization.application.PermissionResolutionService;
 import com.hisabnikash.erp.identityaccess.config.properties.BootstrapAdminProperties;
 import com.hisabnikash.erp.identityaccess.role.domain.Role;
 import com.hisabnikash.erp.identityaccess.role.application.RoleService;

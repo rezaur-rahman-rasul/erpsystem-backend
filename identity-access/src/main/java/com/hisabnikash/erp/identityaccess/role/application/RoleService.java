@@ -21,10 +21,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -144,17 +148,54 @@ public class RoleService {
                 .map(PermissionResolutionService.ResolvedPermission::legacyAuthority)
                 .collect(LinkedHashSet::new, Set::add, Set::addAll);
 
-        Set<RolePermissionGrant> grants = resolvedPermissions.stream()
-                .map(resolved -> {
-                    RolePermissionGrant grant = new RolePermissionGrant();
-                    grant.setRole(role);
-                    grant.setPermission(resolved.permission());
-                    grant.setEffect(PermissionEffect.ALLOW);
-                    return grant;
-                })
+        role.setPermissions(legacyAuthorities);
+        reconcilePermissionGrants(role, resolvedPermissions);
+    }
+
+    private void reconcilePermissionGrants(Role role,
+                                           Set<PermissionResolutionService.ResolvedPermission> resolvedPermissions) {
+        Map<UUID, PermissionResolutionService.ResolvedPermission> desiredByPermissionId = resolvedPermissions.stream()
+                .collect(Collectors.toMap(
+                        resolved -> resolved.permission().getId(),
+                        Function.identity(),
+                        (left, right) -> left
+                ));
+
+        Set<UUID> seenPermissionIds = new LinkedHashSet<>();
+        Iterator<RolePermissionGrant> iterator = role.getPermissionGrants().iterator();
+        while (iterator.hasNext()) {
+            RolePermissionGrant existingGrant = iterator.next();
+            UUID permissionId = existingGrant.getPermission().getId();
+            PermissionResolutionService.ResolvedPermission desired = desiredByPermissionId.get(permissionId);
+
+            boolean duplicateInCollection = !seenPermissionIds.add(permissionId);
+            boolean permissionRemoved = desired == null;
+            boolean effectMismatch = desired != null && existingGrant.getEffect() != PermissionEffect.ALLOW;
+
+            if (duplicateInCollection || permissionRemoved) {
+                iterator.remove();
+                continue;
+            }
+
+            if (effectMismatch) {
+                existingGrant.setEffect(PermissionEffect.ALLOW);
+            }
+        }
+
+        Set<UUID> existingPermissionIds = role.getPermissionGrants().stream()
+                .map(grant -> grant.getPermission().getId())
                 .collect(LinkedHashSet::new, Set::add, Set::addAll);
 
-        role.setPermissions(legacyAuthorities);
-        role.replacePermissionGrants(grants);
+        desiredByPermissionId.forEach((permissionId, resolved) -> {
+            if (existingPermissionIds.contains(permissionId)) {
+                return;
+            }
+
+            RolePermissionGrant grant = new RolePermissionGrant();
+            grant.setRole(role);
+            grant.setPermission(resolved.permission());
+            grant.setEffect(PermissionEffect.ALLOW);
+            role.getPermissionGrants().add(grant);
+        });
     }
 }
