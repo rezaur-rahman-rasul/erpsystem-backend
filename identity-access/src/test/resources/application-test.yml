@@ -1,0 +1,49 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:identityaccess;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  cache:
+    type: simple
+  data:
+    redis:
+      repositories:
+        enabled: false
+  kafka:
+    listener:
+      auto-startup: false
+
+management:
+  health:
+    redis:
+      enabled: false
+
+app:
+  security:
+    jwt:
+      secret: change-this-to-a-long-random-base64-like-secret-key
+      issuer: enterprise-platform
+      access-token-expiration-minutes: 60
+      refresh-token-expiration-days: 7
+  messaging:
+    topics:
+      user-created:
+      user-updated:
+      user-status-changed:
+      role-created:
+      role-updated:
+      organization-access-created:
+      organization-access-updated:
+  bootstrap:
+    admin:
+      username: admin
+      email: admin@erp.local
+      password: Admin@12345
+      tenant-id: ERP-DEFAULT
+      display-name: Platform Admin

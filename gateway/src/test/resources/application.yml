@@ -1,0 +1,18 @@
+spring:
+  cache:
+    type: simple
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+management:
+  health:
+    redis:
+      enabled: false
+
+app:
+  security:
+    jwt:
+      secret: change-this-to-a-long-random-base64-like-secret-key
+      issuer: enterprise-platform

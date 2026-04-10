@@ -1,0 +1,135 @@
+server:
+  port: ${SERVER_PORT:8082}
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: master-data-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/master_data_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    show-sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+      repositories:
+        enabled: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: master-data-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.hisabnikash.erp.masterdata.infrastructure.messaging.DomainEvent
+        spring.json.use.type.headers: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  health:
+    redis:
+      enabled: true
+
+info:
+  app:
+    name: Master Data Service
+    description: Phase 1 master data service for ERP microservices
+    version: 0.0.1-SNAPSHOT
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: INFO
+    com.hisabnikash.erp.masterdata: INFO
+
+app:
+  security:
+    jwt:
+      secret: change-this-to-a-long-random-base64-like-secret-key
+      issuer: enterprise-platform
+  audit:
+    enabled: true
+  cors:
+    allowed-origins:
+      - http://localhost:4200
+      - http://localhost:8080
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - "*"
+  messaging:
+    provider: kafka
+    topics:
+      customer-created: master-data.customer.created
+      customer-updated: master-data.customer.updated
+      supplier-created: master-data.supplier.created
+      supplier-updated: master-data.supplier.updated
+      warehouse-created: master-data.warehouse.created
+      warehouse-updated: master-data.warehouse.updated
+      tax-code-created: master-data.tax-code.created
+      tax-code-updated: master-data.tax-code.updated
+      product-created: master-data.product.created
+      product-updated: master-data.product.updated
+      employee-created: master-data.employee.created
+      employee-updated: master-data.employee.updated
+      chart-of-account-created: master-data.chart-of-account.created
+      chart-of-account-updated: master-data.chart-of-account.updated
+      currency-created: master-data.currency.created
+      currency-updated: master-data.currency.updated
+      unit-of-measure-created: master-data.unit-of-measure.created
+      unit-of-measure-updated: master-data.unit-of-measure.updated
+      payment-term-created: master-data.payment-term.created
+      payment-term-updated: master-data.payment-term.updated

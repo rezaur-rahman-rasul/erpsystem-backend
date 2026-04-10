@@ -1,0 +1,21 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.hisabnikash.erp</groupId>
+    <artifactId>hishabnikash</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>HishabNikash</name>
+    <description>Parent workspace for Phase 1 ERP microservices</description>
+
+    <modules>
+        <module>gateway</module>
+        <module>identity-access</module>
+        <module>master-data</module>
+        <module>organization</module>
+    </modules>
+</project>

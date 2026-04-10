@@ -1,0 +1,131 @@
+server:
+  port: ${SERVER_PORT:8081}
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: identity-access-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/identity_access_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:admin}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    show-sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+      repositories:
+        enabled: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: identity-access-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.hisabnikash.erp.identityaccess.infrastructure.messaging.DomainEvent
+        spring.json.use.type.headers: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  health:
+    redis:
+      enabled: true
+
+info:
+  app:
+    name: Identity Access Service
+    description: Phase 1 identity service for ERP microservices
+    version: 0.0.1-SNAPSHOT
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: INFO
+    com.hisabnikash.erp.identityaccess: INFO
+
+app:
+  security:
+    jwt:
+      secret: change-this-to-a-long-random-base64-like-secret-key
+      issuer: enterprise-platform
+      access-token-expiration-minutes: 60
+      refresh-token-expiration-days: 7
+  audit:
+    enabled: true
+  cors:
+    allowed-origins:
+      - http://localhost:4200
+      - http://localhost:8080
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - "*"
+  bootstrap:
+    admin:
+      username: admin
+      email: admin@erp.local
+      password: Admin@12345
+      tenant-id: ERP-DEFAULT
+      display-name: Platform Admin
+  messaging:
+    provider: kafka
+    topics:
+      user-created: identity.user.created
+      user-updated: identity.user.updated
+      user-status-changed: identity.user.status-changed
+      role-created: identity.role.created
+      role-updated: identity.role.updated
+      organization-access-created: identity.organization-access.created
+      organization-access-updated: identity.organization-access.updated

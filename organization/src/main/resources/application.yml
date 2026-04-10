@@ -1,0 +1,146 @@
+server:
+  port: ${SERVER_PORT:8083}
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: organization-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/enterprise_structure_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:admin}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    show-sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  Jackson:
+    default-property-inclusion: non_null
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+      repositories:
+        enabled: false
+  Kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: organization-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.hisabnikash.erp.enterprisestructure.infrastructure.messaging.DomainEvent
+        spring.json.use.type.headers: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+  info:
+    env:
+      enabled: true
+  tracing:
+    enabled: true
+
+info:
+  app:
+    name: Organization Service
+    description: ERP organization and enterprise structure service
+    version: 0.0.1-SNAPSHOT
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
+    com.hisabnikash.erp.enterprisestructure: INFO
+
+app:
+  security:
+    jwt:
+      secret: change-this-to-a-long-random-base64-like-secret-key
+      issuer: enterprise-platform
+      access-token-expiration-minutes: 60
+      refresh-token-expiration-days: 7
+  audit:
+    enabled: true
+  cors:
+    allowed-origins:
+      - http://localhost:4200
+      - http://localhost:8080
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - "*"
+  messaging:
+    provider: Kafka
+    topics:
+      legal-entity-created: enterprise.legal-entity.created
+      legal-entity-updated: enterprise.legal-entity.updated
+      business-unit-created: enterprise.business-unit.created
+      business-unit-updated: enterprise.business-unit.updated
+      branch-created: enterprise.branch.created
+      branch-updated: enterprise.branch.updated
+      department-created: enterprise.department.created
+      department-updated: enterprise.department.updated
+      location-created: enterprise.location.created
+      location-updated: enterprise.location.updated
+      cost-center-created: enterprise.cost-center.created
+      cost-center-updated: enterprise.cost-center.updated
+      profit-center-created: enterprise.profit-center.created
+      profit-center-updated: enterprise.profit-center.updated
+      subsidiary-created: enterprise.subsidiary.created
+      subsidiary-updated: enterprise.subsidiary.updated
+      fiscal-calendar-created: enterprise.fiscal-calendar.created
+      fiscal-calendar-updated: enterprise.fiscal-calendar.updated
+      tenant-profile-created: enterprise.tenant-profile.created
+      tenant-profile-updated: enterprise.tenant-profile.updated
+      organization-setting-changed: enterprise.organization-setting.changed
