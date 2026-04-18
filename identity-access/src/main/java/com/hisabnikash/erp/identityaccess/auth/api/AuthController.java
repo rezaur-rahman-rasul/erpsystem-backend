@@ -20,26 +20,26 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService service;
+    private final AuthService authService;
 
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.success(service.login(request), "Authentication successful");
+        return ApiResponse.success(authService.login(request), "Authentication successful");
     }
 
     @PostMapping("/refresh")
     public ApiResponse<LoginResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        return ApiResponse.success(service.refresh(request.refreshToken()), "Token refreshed");
+        return ApiResponse.success(authService.refresh(request.refreshToken()), "Token refreshed");
     }
 
     @PostMapping("/logout")
     public ApiResponse<Void> logout(@Valid @RequestBody LogoutRequest request) {
-        service.logout(request.refreshToken());
+        authService.logout(request.refreshToken());
         return ApiResponse.success(null, "Logged out");
     }
 
     @GetMapping("/me")
     public ApiResponse<UserResponse> me() {
-        return ApiResponse.success(service.getCurrentUser());
+        return ApiResponse.success(authService.getCurrentUser());
     }
 }

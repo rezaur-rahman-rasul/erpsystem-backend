@@ -75,6 +75,34 @@ Run the full Phase 1 stack with:
 docker compose -f docker-compose.phase1.yml up --build
 ```
 
+The central stack now includes observability services:
+
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3000`
+- Grafana login: `admin` / `admin123` for local development only
+
+Prometheus scrapes each service at `/actuator/prometheus`. Grafana is provisioned with a default Prometheus data source and a starter dashboard for the Phase 1 services.
+
+The central compose stack also uses health-based dependency startup:
+
+- application containers expose Docker health checks through their Dockerfiles
+- PostgreSQL, Redis, and Kafka now have compose-level health checks
+- service dependencies use `depends_on.condition: service_healthy`
+- application services use `restart: on-failure:5` for startup retries
+- infrastructure services use `restart: unless-stopped`
+
+Run a service-local dependency stack with:
+
+```powershell
+docker compose -f gateway/docker-compose.yml up -d
+docker compose -f identity-access/docker-compose.yml up -d
+docker compose -f master-data/docker-compose.yml up -d
+docker compose -f organization/docker-compose.yml up -d
+```
+
+These service-local compose files are dependency-only stacks for isolated module development.
+They intentionally reuse the default localhost ports (`5432`, `6379`, `9092`), so they should be run one at a time.
+
 ## Notes
 
 - The former root service was moved into `organization/`.
@@ -85,3 +113,4 @@ docker compose -f docker-compose.phase1.yml up --build
 - Runtime configuration is standardized on a single `application.yml` per service.
 - Environment differences are provided through environment variables such as `DB_URL`, `KAFKA_BOOTSTRAP_SERVERS`, and `REDIS_HOST`.
 - `application-test.yml` remains the only profile-specific file used across services for test isolation.
+- Prometheus metrics are exposed from the shared Spring Boot Actuator endpoint `/actuator/prometheus`.

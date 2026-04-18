@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CustomerController {
 
-    private final CustomerService service;
+    private final CustomerService customerService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('master-data:customer:create')")
     public ApiResponse<CustomerResponse> create(@Valid @RequestBody CreateCustomerRequest request) {
-        return ApiResponse.success(service.create(request), "Customer created");
+        return ApiResponse.success(customerService.create(request), "Customer created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('master-data:customer:view')")
     public ApiResponse<List<CustomerResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(customerService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:customer:view')")
     public ApiResponse<CustomerResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.toResponse(service.getById(id)));
+        return ApiResponse.success(customerService.toResponse(customerService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:customer:update')")
     public ApiResponse<CustomerResponse> update(@PathVariable UUID id,
                                                 @Valid @RequestBody UpdateCustomerRequest request) {
-        return ApiResponse.success(service.update(id, request), "Customer updated");
+        return ApiResponse.success(customerService.update(id, request), "Customer updated");
     }
 }

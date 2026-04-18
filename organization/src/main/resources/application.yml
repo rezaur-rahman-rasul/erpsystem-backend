@@ -7,7 +7,7 @@ spring:
   application:
     name: organization-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/enterprise_structure_db}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/organization_db}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:admin}
     driver-class-name: org.postgresql.Driver
@@ -46,6 +46,9 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
+        max.block.ms: 1000
+        request.timeout.ms: 1000
+        delivery.timeout.ms: 2000
     consumer:
       group-id: organization-service
       auto-offset-reset: earliest
@@ -53,7 +56,7 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
-        spring.json.value.default.type: com.hisabnikash.erp.enterprisestructure.infrastructure.messaging.DomainEvent
+        spring.json.value.default.type: com.hishabnikash.erp.organization.infrastructure.messaging.DomainEvent
         spring.json.use.type.headers: false
 
 management:
@@ -96,7 +99,7 @@ logging:
     root: INFO
     org.springframework.security: INFO
     org.hibernate.SQL: INFO
-    com.hisabnikash.erp.enterprisestructure: INFO
+    com.hishabnikash.erp.organization: INFO
 
 app:
   security:

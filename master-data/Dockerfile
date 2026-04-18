@@ -1,6 +1,15 @@
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-jammy
 
-ARG JAR_FILE=target/*.jar
-COPY ${JAR_FILE} app.jar
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+WORKDIR /app
+
+COPY target/*.jar app.jar
+
+EXPOSE 8082
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 CMD ["curl", "--fail", "http://localhost:8082/actuator/health"]
+
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

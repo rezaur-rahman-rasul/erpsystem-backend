@@ -28,38 +28,38 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserService service;
+    private final UserService userService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('identity:user:create')")
     public ApiResponse<UserResponse> create(@Valid @RequestBody CreateUserRequest request) {
-        return ApiResponse.success(service.create(request), "User created");
+        return ApiResponse.success(userService.create(request), "User created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('identity:user:view')")
     public ApiResponse<List<UserResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(userService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('identity:user:view')")
     public ApiResponse<UserResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.getResponseById(id));
+        return ApiResponse.success(userService.getResponseById(id));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('identity:user:update')")
     public ApiResponse<UserResponse> update(@PathVariable UUID id,
                                             @Valid @RequestBody UpdateUserRequest request) {
-        return ApiResponse.success(service.update(id, request), "User updated");
+        return ApiResponse.success(userService.update(id, request), "User updated");
     }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAuthority('identity:user:update')")
     public ApiResponse<UserResponse> changeStatus(@PathVariable UUID id,
                                                   @Valid @RequestBody UpdateUserStatusRequest request) {
-        return ApiResponse.success(service.changeStatus(id, request), "User status updated");
+        return ApiResponse.success(userService.changeStatus(id, request), "User status updated");
     }
 }

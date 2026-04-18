@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WarehouseController {
 
-    private final WarehouseService service;
+    private final WarehouseService warehouseService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('master-data:warehouse:create')")
     public ApiResponse<WarehouseResponse> create(@Valid @RequestBody CreateWarehouseRequest request) {
-        return ApiResponse.success(service.create(request), "Warehouse created");
+        return ApiResponse.success(warehouseService.create(request), "Warehouse created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('master-data:warehouse:view')")
     public ApiResponse<List<WarehouseResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(warehouseService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:warehouse:view')")
     public ApiResponse<WarehouseResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.toResponse(service.getById(id)));
+        return ApiResponse.success(warehouseService.toResponse(warehouseService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:warehouse:update')")
     public ApiResponse<WarehouseResponse> update(@PathVariable UUID id,
                                                  @Valid @RequestBody UpdateWarehouseRequest request) {
-        return ApiResponse.success(service.update(id, request), "Warehouse updated");
+        return ApiResponse.success(warehouseService.update(id, request), "Warehouse updated");
     }
 }

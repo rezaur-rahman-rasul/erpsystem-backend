@@ -48,33 +48,29 @@ public class UserService {
     @Auditable(action = "CREATE_USER")
     @CacheEvict(cacheNames = {CacheNames.USER_BY_ID, CacheNames.USER_LIST}, allEntries = true)
     public UserResponse create(CreateUserRequest request) {
-        if (userRepository.existsByUsernameIgnoreCase(request.username())) {
-            throw new DuplicateResourceException("Username already exists: " + request.username());
-        }
-        if (userRepository.existsByEmailIgnoreCase(request.email())) {
-            throw new DuplicateResourceException("Email already exists: " + request.email());
-        }
-        validateTenant(request.tenantId());
+        String username = normalizeText(request.username());
+        String email = normalizeEmail(request.email());
+        String displayName = normalizeText(request.displayName());
+        String tenantId = normalizeText(request.tenantId());
+
+        ensureUsernameAvailable(username, null);
+        ensureEmailAvailable(email, null);
+        validateTenant(tenantId);
 
         UserAccount user = new UserAccount();
-        user.setUsername(request.username().trim());
-        user.setEmail(request.email().trim().toLowerCase());
-        user.setDisplayName(request.displayName().trim());
-        user.setTenantId(request.tenantId().trim());
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setDisplayName(displayName);
+        user.setTenantId(tenantId);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setStatus(UserStatus.ACTIVE);
         user.setRoles(resolveRoles(request.roleIds()));
 
-        UserAccount saved = userRepository.save(user);
-        UserResponse response = toResponse(saved);
-        eventPublisher.publish(
+        return saveAndPublish(
+                user,
                 messagingProperties.getTopics().getUserCreated(),
-                "UserCreated",
-                "USER",
-                saved.getId(),
-                response
+                "UserCreated"
         );
-        return response;
     }
 
     @Transactional(readOnly = true)
@@ -101,17 +97,13 @@ public class UserService {
     @CacheEvict(cacheNames = {CacheNames.USER_BY_ID, CacheNames.USER_LIST}, allEntries = true)
     public UserResponse update(UUID id, UpdateUserRequest request) {
         UserAccount user = getById(id);
-        String username = request.username().trim();
-        String email = request.email().trim().toLowerCase();
-        String displayName = request.displayName().trim();
-        String tenantId = request.tenantId().trim();
+        String username = normalizeText(request.username());
+        String email = normalizeEmail(request.email());
+        String displayName = normalizeText(request.displayName());
+        String tenantId = normalizeText(request.tenantId());
 
-        if (userRepository.existsByUsernameIgnoreCaseAndIdNot(username, id)) {
-            throw new DuplicateResourceException("Username already exists: " + request.username());
-        }
-        if (userRepository.existsByEmailIgnoreCaseAndIdNot(email, id)) {
-            throw new DuplicateResourceException("Email already exists: " + request.email());
-        }
+        ensureUsernameAvailable(username, id);
+        ensureEmailAvailable(email, id);
         validateTenant(tenantId);
 
         user.setUsername(username);
@@ -120,16 +112,11 @@ public class UserService {
         user.setTenantId(tenantId);
         user.setRoles(resolveRoles(request.roleIds()));
 
-        UserAccount saved = userRepository.save(user);
-        UserResponse response = toResponse(saved);
-        eventPublisher.publish(
+        return saveAndPublish(
+                user,
                 messagingProperties.getTopics().getUserUpdated(),
-                "UserUpdated",
-                "USER",
-                saved.getId(),
-                response
+                "UserUpdated"
         );
-        return response;
     }
 
     @Auditable(action = "CHANGE_USER_STATUS")
@@ -137,36 +124,15 @@ public class UserService {
     public UserResponse changeStatus(UUID id, UpdateUserStatusRequest request) {
         UserAccount user = getById(id);
         user.setStatus(request.status());
-        UserAccount saved = userRepository.save(user);
-        UserResponse response = toResponse(saved);
-        eventPublisher.publish(
+
+        return saveAndPublish(
+                user,
                 messagingProperties.getTopics().getUserStatusChanged(),
-                "UserStatusChanged",
-                "USER",
-                saved.getId(),
-                response
+                "UserStatusChanged"
         );
-        return response;
     }
 
     public UserResponse toResponse(UserAccount user) {
-        Set<RoleSummaryResponse> roles = user.getRoles().stream()
-                .map(role -> new RoleSummaryResponse(role.getId(), role.getCode(), role.getName()))
-                .collect(LinkedHashSet::new, Set::add, Set::addAll);
-        Set<OrganizationAccessResponse> organizationAccesses = organizationAccessRepository.findByUser_Id(user.getId()).stream()
-                .map(access -> new OrganizationAccessResponse(
-                        access.getId(),
-                        user.getId(),
-                        access.getLegalEntityId(),
-                        access.getBranchId(),
-                        access.isPrimaryAccess(),
-                        access.getCreatedBy(),
-                        access.getCreatedAt(),
-                        access.getUpdatedBy(),
-                        access.getUpdatedAt()
-                ))
-                .collect(LinkedHashSet::new, Set::add, Set::addAll);
-
         return new UserResponse(
                 user.getId(),
                 user.getUsername(),
@@ -178,23 +144,101 @@ public class UserService {
                 user.getCreatedAt(),
                 user.getUpdatedBy(),
                 user.getUpdatedAt(),
-                roles,
-                organizationAccesses
+                buildRoleSummaries(user),
+                buildOrganizationAccessResponses(user)
         );
+    }
+
+    private UserResponse saveAndPublish(UserAccount user, String topic, String eventType) {
+        UserAccount saved = userRepository.save(user);
+        UserResponse response = toResponse(saved);
+
+        eventPublisher.publish(
+                topic,
+                eventType,
+                "USER",
+                saved.getId(),
+                response
+        );
+
+        return response;
+    }
+
+    private Set<RoleSummaryResponse> buildRoleSummaries(UserAccount user) {
+        Set<RoleSummaryResponse> roles = new LinkedHashSet<>();
+
+        for (Role role : user.getRoles()) {
+            roles.add(new RoleSummaryResponse(role.getId(), role.getCode(), role.getName()));
+        }
+
+        return roles;
+    }
+
+    private Set<OrganizationAccessResponse> buildOrganizationAccessResponses(UserAccount user) {
+        Set<OrganizationAccessResponse> organizationAccesses = new LinkedHashSet<>();
+
+        organizationAccessRepository.findByUser_Id(user.getId()).forEach(access ->
+                organizationAccesses.add(new OrganizationAccessResponse(
+                        access.getId(),
+                        user.getId(),
+                        access.getLegalEntityId(),
+                        access.getBranchId(),
+                        access.isPrimaryAccess(),
+                        access.getCreatedBy(),
+                        access.getCreatedAt(),
+                        access.getUpdatedBy(),
+                        access.getUpdatedAt()
+                ))
+        );
+
+        return organizationAccesses;
+    }
+
+    private void ensureUsernameAvailable(String username, UUID currentUserId) {
+        boolean exists = currentUserId == null
+                ? userRepository.existsByUsernameIgnoreCase(username)
+                : userRepository.existsByUsernameIgnoreCaseAndIdNot(username, currentUserId);
+
+        if (exists) {
+            throw new DuplicateResourceException("Username already exists: " + username);
+        }
+    }
+
+    private void ensureEmailAvailable(String email, UUID currentUserId) {
+        boolean exists = currentUserId == null
+                ? userRepository.existsByEmailIgnoreCase(email)
+                : userRepository.existsByEmailIgnoreCaseAndIdNot(email, currentUserId);
+
+        if (exists) {
+            throw new DuplicateResourceException("Email already exists: " + email);
+        }
     }
 
     private void validateTenant(String tenantId) {
         if (tenantProfileReferenceRepository.count() == 0) {
             return;
         }
-        if (!tenantProfileReferenceRepository.existsByTenantCodeIgnoreCaseAndActiveTrue(tenantId.trim())) {
+
+        if (!tenantProfileReferenceRepository.existsByTenantCodeIgnoreCaseAndActiveTrue(tenantId)) {
             throw new InvalidRequestException("Tenant is not synchronized or inactive: " + tenantId);
         }
     }
 
     private Set<Role> resolveRoles(Set<UUID> roleIds) {
-        return roleIds.stream()
-                .map(roleService::getById)
-                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+        Set<Role> roles = new LinkedHashSet<>();
+
+        for (UUID roleId : roleIds) {
+            roles.add(roleService.getById(roleId));
+        }
+
+        return roles;
+    }
+
+    private String normalizeText(String value) {
+        return value.trim();
+    }
+
+    private String normalizeEmail(String value) {
+        return normalizeText(value).toLowerCase();
     }
 }

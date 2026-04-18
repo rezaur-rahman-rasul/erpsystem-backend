@@ -23,7 +23,7 @@ import java.util.UUID;
 @Transactional
 public class SupplierService {
 
-    private final SupplierRepository repository;
+    private final SupplierRepository supplierRepository;
     private final MasterDataOwnershipService ownershipService;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
@@ -32,13 +32,13 @@ public class SupplierService {
     public SupplierResponse create(CreateSupplierRequest request) {
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCase(legalEntityId, request.code())) {
+        if (supplierRepository.existsByLegalEntityIdAndCodeIgnoreCase(legalEntityId, request.code())) {
             throw new DuplicateResourceException("Supplier code already exists: " + request.code());
         }
 
         Supplier supplier = new Supplier();
         apply(supplier, tenantId, legalEntityId, request.code(), request.name(), request.email(), request.phone(), request.taxNumber(), request.active());
-        Supplier saved = repository.save(supplier);
+        Supplier saved = supplierRepository.save(supplier);
         SupplierResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getSupplierCreated(),
@@ -52,14 +52,14 @@ public class SupplierService {
 
     @Transactional(readOnly = true)
     public List<SupplierResponse> getAll() {
-        return ownershipService.filterAccessible(repository.findAll()).stream()
+        return ownershipService.filterAccessible(supplierRepository.findAll()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Supplier getById(UUID id) {
-        Supplier supplier = repository.findById(id)
+        Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Supplier not found: " + id));
         return ownershipService.requireReadable(supplier, "Supplier");
     }
@@ -69,12 +69,12 @@ public class SupplierService {
         Supplier supplier = getById(id);
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(legalEntityId, request.code(), id)) {
+        if (supplierRepository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(legalEntityId, request.code(), id)) {
             throw new DuplicateResourceException("Supplier code already exists: " + request.code());
         }
 
         apply(supplier, tenantId, legalEntityId, request.code(), request.name(), request.email(), request.phone(), request.taxNumber(), request.active());
-        Supplier saved = repository.save(supplier);
+        Supplier saved = supplierRepository.save(supplier);
         SupplierResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getSupplierUpdated(),

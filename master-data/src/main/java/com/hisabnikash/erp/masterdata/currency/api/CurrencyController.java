@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CurrencyController {
 
-    private final CurrencyService service;
+    private final CurrencyService currencyService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('master-data:currency:create')")
     public ApiResponse<CurrencyResponse> create(@Valid @RequestBody CreateCurrencyRequest request) {
-        return ApiResponse.success(service.create(request), "Currency created");
+        return ApiResponse.success(currencyService.create(request), "Currency created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('master-data:currency:view')")
     public ApiResponse<List<CurrencyResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(currencyService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:currency:view')")
     public ApiResponse<CurrencyResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.toResponse(service.getById(id)));
+        return ApiResponse.success(currencyService.toResponse(currencyService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:currency:update')")
     public ApiResponse<CurrencyResponse> update(@PathVariable UUID id,
                                                 @Valid @RequestBody UpdateCurrencyRequest request) {
-        return ApiResponse.success(service.update(id, request), "Currency updated");
+        return ApiResponse.success(currencyService.update(id, request), "Currency updated");
     }
 }

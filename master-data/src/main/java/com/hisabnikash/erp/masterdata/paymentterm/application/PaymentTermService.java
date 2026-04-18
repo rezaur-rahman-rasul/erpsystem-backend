@@ -27,21 +27,21 @@ import java.util.UUID;
 @Transactional
 public class PaymentTermService {
 
-    private final PaymentTermRepository repository;
+    private final PaymentTermRepository paymentTermRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
 
     @Auditable(action = "CREATE_PAYMENT_TERM")
     @CacheEvict(cacheNames = {CacheNames.PAYMENT_TERM_BY_ID, CacheNames.PAYMENT_TERM_LIST}, allEntries = true)
     public PaymentTermResponse create(CreatePaymentTermRequest request) {
-        if (repository.existsByCodeIgnoreCase(request.code())) {
+        if (paymentTermRepository.existsByCodeIgnoreCase(request.code())) {
             throw new DuplicateResourceException("Payment term code already exists: " + request.code());
         }
 
         PaymentTerm paymentTerm = new PaymentTerm();
         apply(paymentTerm, request.code(), request.name(), request.dueDays(),
                 request.discountDays(), request.discountPercentage(), request.active());
-        PaymentTerm saved = repository.save(paymentTerm);
+        PaymentTerm saved = paymentTermRepository.save(paymentTerm);
         PaymentTermResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getPaymentTermCreated(),
@@ -56,7 +56,7 @@ public class PaymentTermService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = CacheNames.PAYMENT_TERM_LIST, key = "'ALL'")
     public List<PaymentTermResponse> getAll() {
-        return repository.findAll().stream()
+        return paymentTermRepository.findAll().stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -64,7 +64,7 @@ public class PaymentTermService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = CacheNames.PAYMENT_TERM_BY_ID, key = "#id")
     public PaymentTerm getById(UUID id) {
-        return repository.findById(id)
+        return paymentTermRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment term not found: " + id));
     }
 
@@ -72,13 +72,13 @@ public class PaymentTermService {
     @CacheEvict(cacheNames = {CacheNames.PAYMENT_TERM_BY_ID, CacheNames.PAYMENT_TERM_LIST}, allEntries = true)
     public PaymentTermResponse update(UUID id, UpdatePaymentTermRequest request) {
         PaymentTerm paymentTerm = getById(id);
-        if (repository.existsByCodeIgnoreCaseAndIdNot(request.code(), id)) {
+        if (paymentTermRepository.existsByCodeIgnoreCaseAndIdNot(request.code(), id)) {
             throw new DuplicateResourceException("Payment term code already exists: " + request.code());
         }
 
         apply(paymentTerm, request.code(), request.name(), request.dueDays(),
                 request.discountDays(), request.discountPercentage(), request.active());
-        PaymentTerm saved = repository.save(paymentTerm);
+        PaymentTerm saved = paymentTermRepository.save(paymentTerm);
         PaymentTermResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getPaymentTermUpdated(),

@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SupplierController {
 
-    private final SupplierService service;
+    private final SupplierService supplierService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('master-data:supplier:create')")
     public ApiResponse<SupplierResponse> create(@Valid @RequestBody CreateSupplierRequest request) {
-        return ApiResponse.success(service.create(request), "Supplier created");
+        return ApiResponse.success(supplierService.create(request), "Supplier created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('master-data:supplier:view')")
     public ApiResponse<List<SupplierResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(supplierService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:supplier:view')")
     public ApiResponse<SupplierResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.toResponse(service.getById(id)));
+        return ApiResponse.success(supplierService.toResponse(supplierService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:supplier:update')")
     public ApiResponse<SupplierResponse> update(@PathVariable UUID id,
                                                 @Valid @RequestBody UpdateSupplierRequest request) {
-        return ApiResponse.success(service.update(id, request), "Supplier updated");
+        return ApiResponse.success(supplierService.update(id, request), "Supplier updated");
     }
 }

@@ -24,7 +24,7 @@ import java.util.UUID;
 @Transactional
 public class ChartOfAccountService {
 
-    private final ChartOfAccountRepository repository;
+    private final ChartOfAccountRepository chartOfAccountRepository;
     private final MasterDataOwnershipService ownershipService;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
@@ -33,7 +33,7 @@ public class ChartOfAccountService {
     public ChartOfAccountResponse create(CreateChartOfAccountRequest request) {
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCase(legalEntityId, request.code())) {
+        if (chartOfAccountRepository.existsByLegalEntityIdAndCodeIgnoreCase(legalEntityId, request.code())) {
             throw new DuplicateResourceException("Chart of account code already exists: " + request.code());
         }
 
@@ -41,7 +41,7 @@ public class ChartOfAccountService {
 
         ChartOfAccount account = new ChartOfAccount();
         apply(account, tenantId, legalEntityId, request.code(), request.name(), request.accountType(), request.parentAccountId(), request.postingAllowed(), request.active());
-        ChartOfAccount saved = repository.save(account);
+        ChartOfAccount saved = chartOfAccountRepository.save(account);
         ChartOfAccountResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getChartOfAccountCreated(),
@@ -55,14 +55,14 @@ public class ChartOfAccountService {
 
     @Transactional(readOnly = true)
     public List<ChartOfAccountResponse> getAll() {
-        return ownershipService.filterAccessible(repository.findAll()).stream()
+        return ownershipService.filterAccessible(chartOfAccountRepository.findAll()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ChartOfAccount getById(UUID id) {
-        ChartOfAccount account = repository.findById(id)
+        ChartOfAccount account = chartOfAccountRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Chart of account not found: " + id));
         return ownershipService.requireReadable(account, "Chart of account");
     }
@@ -72,7 +72,7 @@ public class ChartOfAccountService {
         ChartOfAccount account = getById(id);
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(legalEntityId, request.code(), id)) {
+        if (chartOfAccountRepository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(legalEntityId, request.code(), id)) {
             throw new DuplicateResourceException("Chart of account code already exists: " + request.code());
         }
         if (id.equals(request.parentAccountId())) {
@@ -81,7 +81,7 @@ public class ChartOfAccountService {
 
         validateParent(legalEntityId, request.parentAccountId());
         apply(account, tenantId, legalEntityId, request.code(), request.name(), request.accountType(), request.parentAccountId(), request.postingAllowed(), request.active());
-        ChartOfAccount saved = repository.save(account);
+        ChartOfAccount saved = chartOfAccountRepository.save(account);
         ChartOfAccountResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getChartOfAccountUpdated(),
@@ -116,7 +116,7 @@ public class ChartOfAccountService {
             return;
         }
 
-        ChartOfAccount parent = repository.findById(parentAccountId)
+        ChartOfAccount parent = chartOfAccountRepository.findById(parentAccountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Parent chart of account not found: " + parentAccountId));
         if (!legalEntityId.equals(parent.getLegalEntityId())) {
             throw new IllegalArgumentException("Parent chart of account must belong to the same legal entity");

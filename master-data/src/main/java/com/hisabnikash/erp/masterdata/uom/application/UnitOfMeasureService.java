@@ -26,21 +26,21 @@ import java.util.UUID;
 @Transactional
 public class UnitOfMeasureService {
 
-    private final UnitOfMeasureRepository repository;
+    private final UnitOfMeasureRepository unitOfMeasureRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
 
     @Auditable(action = "CREATE_UNIT_OF_MEASURE")
     @CacheEvict(cacheNames = {CacheNames.UNIT_OF_MEASURE_BY_ID, CacheNames.UNIT_OF_MEASURE_LIST}, allEntries = true)
     public UnitOfMeasureResponse create(CreateUnitOfMeasureRequest request) {
-        if (repository.existsByCodeIgnoreCase(request.code())) {
+        if (unitOfMeasureRepository.existsByCodeIgnoreCase(request.code())) {
             throw new DuplicateResourceException("Unit of measure code already exists: " + request.code());
         }
 
         UnitOfMeasure unit = new UnitOfMeasure();
         apply(unit, request.code(), request.name(), request.category(), request.baseUnit(),
                 request.conversionFactor().setScale(6, RoundingMode.HALF_UP), request.active());
-        UnitOfMeasure saved = repository.save(unit);
+        UnitOfMeasure saved = unitOfMeasureRepository.save(unit);
         UnitOfMeasureResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getUnitOfMeasureCreated(),
@@ -55,7 +55,7 @@ public class UnitOfMeasureService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = CacheNames.UNIT_OF_MEASURE_LIST, key = "'ALL'")
     public List<UnitOfMeasureResponse> getAll() {
-        return repository.findAll().stream()
+        return unitOfMeasureRepository.findAll().stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -63,7 +63,7 @@ public class UnitOfMeasureService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = CacheNames.UNIT_OF_MEASURE_BY_ID, key = "#id")
     public UnitOfMeasure getById(UUID id) {
-        return repository.findById(id)
+        return unitOfMeasureRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Unit of measure not found: " + id));
     }
 
@@ -71,13 +71,13 @@ public class UnitOfMeasureService {
     @CacheEvict(cacheNames = {CacheNames.UNIT_OF_MEASURE_BY_ID, CacheNames.UNIT_OF_MEASURE_LIST}, allEntries = true)
     public UnitOfMeasureResponse update(UUID id, UpdateUnitOfMeasureRequest request) {
         UnitOfMeasure unit = getById(id);
-        if (repository.existsByCodeIgnoreCaseAndIdNot(request.code(), id)) {
+        if (unitOfMeasureRepository.existsByCodeIgnoreCaseAndIdNot(request.code(), id)) {
             throw new DuplicateResourceException("Unit of measure code already exists: " + request.code());
         }
 
         apply(unit, request.code(), request.name(), request.category(), request.baseUnit(),
                 request.conversionFactor().setScale(6, RoundingMode.HALF_UP), request.active());
-        UnitOfMeasure saved = repository.save(unit);
+        UnitOfMeasure saved = unitOfMeasureRepository.save(unit);
         UnitOfMeasureResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getUnitOfMeasureUpdated(),

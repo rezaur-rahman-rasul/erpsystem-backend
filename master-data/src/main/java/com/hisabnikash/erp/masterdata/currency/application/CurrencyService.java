@@ -25,20 +25,20 @@ import java.util.UUID;
 @Transactional
 public class CurrencyService {
 
-    private final CurrencyRepository repository;
+    private final CurrencyRepository currencyRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
 
     @Auditable(action = "CREATE_CURRENCY")
     @CacheEvict(cacheNames = {CacheNames.CURRENCY_BY_ID, CacheNames.CURRENCY_LIST}, allEntries = true)
     public CurrencyResponse create(CreateCurrencyRequest request) {
-        if (repository.existsByCodeIgnoreCase(request.code())) {
+        if (currencyRepository.existsByCodeIgnoreCase(request.code())) {
             throw new DuplicateResourceException("Currency code already exists: " + request.code());
         }
 
         Currency currency = new Currency();
         apply(currency, request.code(), request.name(), request.symbol(), request.decimalPlaces(), request.active());
-        Currency saved = repository.save(currency);
+        Currency saved = currencyRepository.save(currency);
         CurrencyResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getCurrencyCreated(),
@@ -53,7 +53,7 @@ public class CurrencyService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = CacheNames.CURRENCY_LIST, key = "'ALL'")
     public List<CurrencyResponse> getAll() {
-        return repository.findAll().stream()
+        return currencyRepository.findAll().stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -61,7 +61,7 @@ public class CurrencyService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = CacheNames.CURRENCY_BY_ID, key = "#id")
     public Currency getById(UUID id) {
-        return repository.findById(id)
+        return currencyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + id));
     }
 
@@ -69,12 +69,12 @@ public class CurrencyService {
     @CacheEvict(cacheNames = {CacheNames.CURRENCY_BY_ID, CacheNames.CURRENCY_LIST}, allEntries = true)
     public CurrencyResponse update(UUID id, UpdateCurrencyRequest request) {
         Currency currency = getById(id);
-        if (repository.existsByCodeIgnoreCaseAndIdNot(request.code(), id)) {
+        if (currencyRepository.existsByCodeIgnoreCaseAndIdNot(request.code(), id)) {
             throw new DuplicateResourceException("Currency code already exists: " + request.code());
         }
 
         apply(currency, request.code(), request.name(), request.symbol(), request.decimalPlaces(), request.active());
-        Currency saved = repository.save(currency);
+        Currency saved = currencyRepository.save(currency);
         CurrencyResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getCurrencyUpdated(),

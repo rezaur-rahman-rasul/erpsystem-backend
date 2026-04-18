@@ -24,7 +24,7 @@ import java.util.UUID;
 @Transactional
 public class ProductService {
 
-    private final ProductRepository repository;
+    private final ProductRepository productRepository;
     private final UnitOfMeasureRepository unitOfMeasureRepository;
     private final MasterDataOwnershipService ownershipService;
     private final EventPublisher eventPublisher;
@@ -34,7 +34,7 @@ public class ProductService {
     public ProductResponse create(CreateProductRequest request) {
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCase(legalEntityId, request.code())) {
+        if (productRepository.existsByLegalEntityIdAndCodeIgnoreCase(legalEntityId, request.code())) {
             throw new DuplicateResourceException("Product code already exists: " + request.code());
         }
 
@@ -42,7 +42,7 @@ public class ProductService {
 
         Product product = new Product();
         apply(product, tenantId, legalEntityId, request.code(), request.name(), request.description(), request.unitOfMeasureId(), request.active());
-        Product saved = repository.save(product);
+        Product saved = productRepository.save(product);
         ProductResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getProductCreated(),
@@ -56,14 +56,14 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductResponse> getAll() {
-        return ownershipService.filterAccessible(repository.findAll()).stream()
+        return ownershipService.filterAccessible(productRepository.findAll()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Product getById(UUID id) {
-        Product product = repository.findById(id)
+        Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
         return ownershipService.requireReadable(product, "Product");
     }
@@ -73,13 +73,13 @@ public class ProductService {
         Product product = getById(id);
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(legalEntityId, request.code(), id)) {
+        if (productRepository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(legalEntityId, request.code(), id)) {
             throw new DuplicateResourceException("Product code already exists: " + request.code());
         }
 
         validateUnitOfMeasure(request.unitOfMeasureId());
         apply(product, tenantId, legalEntityId, request.code(), request.name(), request.description(), request.unitOfMeasureId(), request.active());
-        Product saved = repository.save(product);
+        Product saved = productRepository.save(product);
         ProductResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getProductUpdated(),

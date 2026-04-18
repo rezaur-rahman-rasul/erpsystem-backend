@@ -25,7 +25,7 @@ import java.util.UUID;
 @Transactional
 public class TaxCodeService {
 
-    private final TaxCodeRepository repository;
+    private final TaxCodeRepository taxCodeRepository;
     private final MasterDataOwnershipService ownershipService;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
@@ -34,13 +34,13 @@ public class TaxCodeService {
     public TaxCodeResponse create(CreateTaxCodeRequest request) {
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCase(legalEntityId, request.code())) {
+        if (taxCodeRepository.existsByLegalEntityIdAndCodeIgnoreCase(legalEntityId, request.code())) {
             throw new DuplicateResourceException("Tax code already exists: " + request.code());
         }
 
         TaxCode taxCode = new TaxCode();
         apply(taxCode, tenantId, legalEntityId, request.code(), request.name(), request.rate(), request.inclusive(), request.active());
-        TaxCode saved = repository.save(taxCode);
+        TaxCode saved = taxCodeRepository.save(taxCode);
         TaxCodeResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getTaxCodeCreated(),
@@ -54,14 +54,14 @@ public class TaxCodeService {
 
     @Transactional(readOnly = true)
     public List<TaxCodeResponse> getAll() {
-        return ownershipService.filterAccessible(repository.findAll()).stream()
+        return ownershipService.filterAccessible(taxCodeRepository.findAll()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public TaxCode getById(UUID id) {
-        TaxCode taxCode = repository.findById(id)
+        TaxCode taxCode = taxCodeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tax code not found: " + id));
         return ownershipService.requireReadable(taxCode, "Tax code");
     }
@@ -71,12 +71,12 @@ public class TaxCodeService {
         TaxCode taxCode = getById(id);
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(legalEntityId, request.code(), id)) {
+        if (taxCodeRepository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(legalEntityId, request.code(), id)) {
             throw new DuplicateResourceException("Tax code already exists: " + request.code());
         }
 
         apply(taxCode, tenantId, legalEntityId, request.code(), request.name(), request.rate(), request.inclusive(), request.active());
-        TaxCode saved = repository.save(taxCode);
+        TaxCode saved = taxCodeRepository.save(taxCode);
         TaxCodeResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getTaxCodeUpdated(),

@@ -5,6 +5,7 @@ services:
     build:
       context: ./gateway
     container_name: erp-gateway
+    restart: on-failure:5
     environment:
       SERVER_PORT: 8080
       REDIS_HOST: redis
@@ -17,15 +18,20 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - identity-access
-      - master-data
-      - organization
-      - redis
+      identity-access:
+        condition: service_healthy
+      master-data:
+        condition: service_healthy
+      organization:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   identity-access:
     build:
       context: ./identity-access
     container_name: identity-access-service
+    restart: on-failure:5
     environment:
       SERVER_PORT: 8081
       DB_URL: jdbc:postgresql://identity-postgres:5432/identity_access_db
@@ -39,15 +45,20 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      - identity-postgres
-      - redis
-      - kafka
+      identity-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   master-data:
     build:
       context: ./master-data
     container_name: master-data-service
+    restart: on-failure:5
     environment:
+      SPRING_PROFILES_ACTIVE: container
       SERVER_PORT: 8082
       DB_URL: jdbc:postgresql://master-data-postgres:5432/master_data_db
       DB_USERNAME: postgres
@@ -60,17 +71,21 @@ services:
     ports:
       - "8082:8082"
     depends_on:
-      - master-data-postgres
-      - redis
-      - kafka
+      master-data-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   organization:
     build:
       context: ./organization
     container_name: organization-service
+    restart: on-failure:5
     environment:
       SERVER_PORT: 8083
-      DB_URL: jdbc:postgresql://organization-postgres:5432/enterprise_structure_db
+      DB_URL: jdbc:postgresql://organization-postgres:5432/organization_db
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       REDIS_HOST: redis
@@ -81,13 +96,17 @@ services:
     ports:
       - "8083:8083"
     depends_on:
-      - organization-postgres
-      - redis
-      - kafka
+      organization-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   identity-postgres:
     image: postgres:16
     container_name: identity-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: identity_access_db
       POSTGRES_USER: postgres
@@ -96,10 +115,17 @@ services:
       - "5433:5432"
     volumes:
       - identity_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d identity_access_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   master-data-postgres:
     image: postgres:16
     container_name: master-data-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: master_data_db
       POSTGRES_USER: postgres
@@ -108,30 +134,51 @@ services:
       - "5434:5432"
     volumes:
       - master_data_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d master_data_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   organization-postgres:
     image: postgres:16
     container_name: organization-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: enterprise_structure_db
+      POSTGRES_DB: organization_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
       - organization_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d organization_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:7
     container_name: organization-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   kafka:
     image: bitnami/kafka:3.7
     container_name: organization-kafka
+    restart: unless-stopped
     ports:
       - "9092:9092"
     environment:
@@ -147,6 +194,51 @@ services:
       ALLOW_PLAINTEXT_LISTENER: "yes"
     volumes:
       - kafka_data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  prometheus:
+    image: prom/prometheus
+    container_name: erp-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      gateway:
+        condition: service_healthy
+      identity-access:
+        condition: service_healthy
+      master-data:
+        condition: service_healthy
+      organization:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana
+    container_name: erp-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
 
 volumes:
   identity_postgres_data:
@@ -154,3 +246,5 @@ volumes:
   organization_postgres_data:
   redis_data:
   kafka_data:
+  prometheus_data:
+  grafana_data:

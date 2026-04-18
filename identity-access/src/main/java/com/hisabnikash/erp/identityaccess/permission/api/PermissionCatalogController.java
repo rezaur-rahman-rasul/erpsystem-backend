@@ -16,11 +16,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PermissionCatalogController {
 
-    private final PermissionCatalogService service;
+    private final PermissionCatalogService permissionCatalogService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('identity:permission:view')")
     public ApiResponse<List<PermissionDefinitionResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(permissionCatalogService.getAll());
     }
 }

@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EmployeeController {
 
-    private final EmployeeService service;
+    private final EmployeeService employeeService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('master-data:employee:create')")
     public ApiResponse<EmployeeResponse> create(@Valid @RequestBody CreateEmployeeRequest request) {
-        return ApiResponse.success(service.create(request), "Employee created");
+        return ApiResponse.success(employeeService.create(request), "Employee created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('master-data:employee:view')")
     public ApiResponse<List<EmployeeResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(employeeService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:employee:view')")
     public ApiResponse<EmployeeResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.toResponse(service.getById(id)));
+        return ApiResponse.success(employeeService.toResponse(employeeService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:employee:update')")
     public ApiResponse<EmployeeResponse> update(@PathVariable UUID id,
                                                 @Valid @RequestBody UpdateEmployeeRequest request) {
-        return ApiResponse.success(service.update(id, request), "Employee updated");
+        return ApiResponse.success(employeeService.update(id, request), "Employee updated");
     }
 }

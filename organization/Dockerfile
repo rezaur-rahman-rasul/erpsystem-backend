@@ -1,10 +1,15 @@
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-jammy
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-ARG JAR_FILE=target/enterprise-structure-service-0.0.1-SNAPSHOT.jar
-COPY ${JAR_FILE} app.jar
+COPY target/*.jar app.jar
 
 EXPOSE 8083
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 CMD ["curl", "--fail", "http://localhost:8083/actuator/health"]
+
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProductController {
 
-    private final ProductService service;
+    private final ProductService productService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('master-data:product:create')")
     public ApiResponse<ProductResponse> create(@Valid @RequestBody CreateProductRequest request) {
-        return ApiResponse.success(service.create(request), "Product created");
+        return ApiResponse.success(productService.create(request), "Product created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('master-data:product:view')")
     public ApiResponse<List<ProductResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(productService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:product:view')")
     public ApiResponse<ProductResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.toResponse(service.getById(id)));
+        return ApiResponse.success(productService.toResponse(productService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:product:update')")
     public ApiResponse<ProductResponse> update(@PathVariable UUID id,
                                                @Valid @RequestBody UpdateProductRequest request) {
-        return ApiResponse.success(service.update(id, request), "Product updated");
+        return ApiResponse.success(productService.update(id, request), "Product updated");
     }
 }

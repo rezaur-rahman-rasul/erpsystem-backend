@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentTermController {
 
-    private final PaymentTermService service;
+    private final PaymentTermService paymentTermService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('master-data:payment-term:create')")
     public ApiResponse<PaymentTermResponse> create(@Valid @RequestBody CreatePaymentTermRequest request) {
-        return ApiResponse.success(service.create(request), "Payment term created");
+        return ApiResponse.success(paymentTermService.create(request), "Payment term created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('master-data:payment-term:view')")
     public ApiResponse<List<PaymentTermResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(paymentTermService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:payment-term:view')")
     public ApiResponse<PaymentTermResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.toResponse(service.getById(id)));
+        return ApiResponse.success(paymentTermService.toResponse(paymentTermService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:payment-term:update')")
     public ApiResponse<PaymentTermResponse> update(@PathVariable UUID id,
                                                    @Valid @RequestBody UpdatePaymentTermRequest request) {
-        return ApiResponse.success(service.update(id, request), "Payment term updated");
+        return ApiResponse.success(paymentTermService.update(id, request), "Payment term updated");
     }
 }

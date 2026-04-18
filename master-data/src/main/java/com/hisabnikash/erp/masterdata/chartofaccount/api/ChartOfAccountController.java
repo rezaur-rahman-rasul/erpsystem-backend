@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ChartOfAccountController {
 
-    private final ChartOfAccountService service;
+    private final ChartOfAccountService chartOfAccountService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('master-data:chart-of-account:create')")
     public ApiResponse<ChartOfAccountResponse> create(@Valid @RequestBody CreateChartOfAccountRequest request) {
-        return ApiResponse.success(service.create(request), "Chart of account created");
+        return ApiResponse.success(chartOfAccountService.create(request), "Chart of account created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('master-data:chart-of-account:view')")
     public ApiResponse<List<ChartOfAccountResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(chartOfAccountService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:chart-of-account:view')")
     public ApiResponse<ChartOfAccountResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.toResponse(service.getById(id)));
+        return ApiResponse.success(chartOfAccountService.toResponse(chartOfAccountService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:chart-of-account:update')")
     public ApiResponse<ChartOfAccountResponse> update(@PathVariable UUID id,
                                                       @Valid @RequestBody UpdateChartOfAccountRequest request) {
-        return ApiResponse.success(service.update(id, request), "Chart of account updated");
+        return ApiResponse.success(chartOfAccountService.update(id, request), "Chart of account updated");
     }
 }

@@ -31,7 +31,7 @@ import java.util.UUID;
 @Transactional
 public class WarehouseService {
 
-    private final WarehouseRepository repository;
+    private final WarehouseRepository warehouseRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
     private final BranchReferenceRepository branchReferenceRepository;
@@ -41,7 +41,7 @@ public class WarehouseService {
     @Auditable(action = "CREATE_WAREHOUSE")
     public WarehouseResponse create(CreateWarehouseRequest request) {
         BranchOwnership branchOwnership = ownershipService.requireAccessibleBranch(request.branchId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCase(branchOwnership.legalEntityId(), request.code())) {
+        if (warehouseRepository.existsByLegalEntityIdAndCodeIgnoreCase(branchOwnership.legalEntityId(), request.code())) {
             throw new DuplicateResourceException("Warehouse code already exists: " + request.code());
         }
 
@@ -56,7 +56,7 @@ public class WarehouseService {
                 request.locationCode(),
                 request.active()
         );
-        Warehouse saved = repository.save(warehouse);
+        Warehouse saved = warehouseRepository.save(warehouse);
         WarehouseResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getWarehouseCreated(),
@@ -72,10 +72,10 @@ public class WarehouseService {
     public List<WarehouseResponse> getAll() {
         Set<UUID> accessibleBranchIds = resolveAccessibleBranchIds();
         List<Warehouse> warehouses = accessibleBranchIds == null
-                ? repository.findAll()
+                ? warehouseRepository.findAll()
                 : accessibleBranchIds.isEmpty()
                 ? List.of()
-                : repository.findByBranchIdIn(accessibleBranchIds);
+                : warehouseRepository.findByBranchIdIn(accessibleBranchIds);
         return ownershipService.filterAccessible(warehouses).stream()
                 .map(this::toResponse)
                 .toList();
@@ -83,7 +83,7 @@ public class WarehouseService {
 
     @Transactional(readOnly = true)
     public Warehouse getById(UUID id) {
-        Warehouse warehouse = repository.findById(id)
+        Warehouse warehouse = warehouseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found: " + id));
         ownershipService.requireReadable(warehouse, "Warehouse");
         enforceBranchAccess(warehouse.getBranchId());
@@ -94,7 +94,7 @@ public class WarehouseService {
     public WarehouseResponse update(UUID id, UpdateWarehouseRequest request) {
         Warehouse warehouse = getById(id);
         BranchOwnership branchOwnership = ownershipService.requireAccessibleBranch(request.branchId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(branchOwnership.legalEntityId(), request.code(), id)) {
+        if (warehouseRepository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(branchOwnership.legalEntityId(), request.code(), id)) {
             throw new DuplicateResourceException("Warehouse code already exists: " + request.code());
         }
 
@@ -108,7 +108,7 @@ public class WarehouseService {
                 request.locationCode(),
                 request.active()
         );
-        Warehouse saved = repository.save(warehouse);
+        Warehouse saved = warehouseRepository.save(warehouse);
         WarehouseResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getWarehouseUpdated(),

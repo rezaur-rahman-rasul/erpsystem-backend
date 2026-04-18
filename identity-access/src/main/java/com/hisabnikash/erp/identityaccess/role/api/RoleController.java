@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RoleController {
 
-    private final RoleService service;
+    private final RoleService roleService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('identity:role:create')")
     public ApiResponse<RoleResponse> create(@Valid @RequestBody CreateRoleRequest request) {
-        return ApiResponse.success(service.create(request), "Role created");
+        return ApiResponse.success(roleService.create(request), "Role created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('identity:role:view')")
     public ApiResponse<List<RoleResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(roleService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('identity:role:view')")
     public ApiResponse<RoleResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.getResponseById(id));
+        return ApiResponse.success(roleService.getResponseById(id));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('identity:role:update')")
     public ApiResponse<RoleResponse> update(@PathVariable UUID id,
                                             @Valid @RequestBody UpdateRoleRequest request) {
-        return ApiResponse.success(service.update(id, request), "Role updated");
+        return ApiResponse.success(roleService.update(id, request), "Role updated");
     }
 }

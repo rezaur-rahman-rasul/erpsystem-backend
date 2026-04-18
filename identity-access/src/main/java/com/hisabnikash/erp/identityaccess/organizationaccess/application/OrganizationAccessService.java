@@ -33,7 +33,7 @@ import java.util.UUID;
 @Transactional
 public class OrganizationAccessService {
 
-    private final OrganizationAccessAssignmentRepository repository;
+    private final OrganizationAccessAssignmentRepository organizationAccessAssignmentRepository;
     private final UserAccountRepository userRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
@@ -51,7 +51,7 @@ public class OrganizationAccessService {
     )
     public OrganizationAccessResponse create(UUID userId, CreateOrganizationAccessRequest request) {
         UserAccount user = resolveUser(userId);
-        if (repository.existsByUser_IdAndLegalEntityIdAndBranchId(userId, request.legalEntityId(), request.branchId())) {
+        if (organizationAccessAssignmentRepository.existsByUser_IdAndLegalEntityIdAndBranchId(userId, request.legalEntityId(), request.branchId())) {
             throw new DuplicateResourceException("Organization access already exists for user: " + userId);
         }
 
@@ -67,7 +67,7 @@ public class OrganizationAccessService {
         assignment.setBranchId(request.branchId());
         assignment.setPrimaryAccess(request.primaryAccess());
 
-        OrganizationAccessAssignment saved = repository.save(assignment);
+        OrganizationAccessAssignment saved = organizationAccessAssignmentRepository.save(assignment);
         OrganizationAccessResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getOrganizationAccessCreated(),
@@ -83,7 +83,7 @@ public class OrganizationAccessService {
     @Cacheable(cacheNames = CacheNames.ORGANIZATION_ACCESS_BY_USER, key = "#userId")
     public Set<OrganizationAccessResponse> getAllByUserId(UUID userId) {
         resolveUser(userId);
-        return repository.findByUser_Id(userId).stream()
+        return organizationAccessAssignmentRepository.findByUser_Id(userId).stream()
                 .map(this::toResponse)
                 .collect(LinkedHashSet::new, Set::add, Set::addAll);
     }
@@ -99,7 +99,7 @@ public class OrganizationAccessService {
     )
     public OrganizationAccessResponse update(UUID userId, UUID accessId, UpdateOrganizationAccessRequest request) {
         resolveUser(userId);
-        OrganizationAccessAssignment assignment = repository.findByIdAndUser_Id(accessId, userId)
+        OrganizationAccessAssignment assignment = organizationAccessAssignmentRepository.findByIdAndUser_Id(accessId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization access not found: " + accessId));
 
         if (request.primaryAccess()) {
@@ -107,7 +107,7 @@ public class OrganizationAccessService {
         }
 
         assignment.setPrimaryAccess(request.primaryAccess());
-        OrganizationAccessAssignment saved = repository.save(assignment);
+        OrganizationAccessAssignment saved = organizationAccessAssignmentRepository.save(assignment);
         OrganizationAccessResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getOrganizationAccessUpdated(),
@@ -160,7 +160,7 @@ public class OrganizationAccessService {
     }
 
     private void clearPrimaryAccess(UUID userId) {
-        List<OrganizationAccessAssignment> assignments = repository.findByUser_Id(userId);
+        List<OrganizationAccessAssignment> assignments = organizationAccessAssignmentRepository.findByUser_Id(userId);
         assignments.forEach(assignment -> assignment.setPrimaryAccess(false));
     }
 }

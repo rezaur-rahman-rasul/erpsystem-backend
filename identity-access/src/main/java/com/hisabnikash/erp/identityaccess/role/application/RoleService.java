@@ -22,13 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,26 +50,22 @@ public class RoleService {
             allEntries = true
     )
     public RoleResponse create(CreateRoleRequest request) {
-        if (roleRepository.existsByCodeIgnoreCase(request.code())) {
-            throw new DuplicateResourceException("Role code already exists: " + request.code());
+        String code = normalizeRoleCode(request.code());
+        if (roleRepository.existsByCodeIgnoreCase(code)) {
+            throw new DuplicateResourceException("Role code already exists: " + code);
         }
 
         Role role = new Role();
-        role.setCode(request.code().trim().toUpperCase());
-        role.setName(request.name().trim());
+        role.setCode(code);
+        role.setName(normalizeText(request.name()));
         role.setDescription(request.description());
         applyPermissions(role, request.permissions());
 
-        Role saved = roleRepository.save(role);
-        RoleResponse response = toResponse(saved);
-        eventPublisher.publish(
+        return saveAndPublish(
+                role,
                 messagingProperties.getTopics().getRoleCreated(),
-                "RoleCreated",
-                "ROLE",
-                saved.getId(),
-                response
+                "RoleCreated"
         );
-        return response;
     }
 
     @Transactional(readOnly = true)
@@ -105,25 +100,22 @@ public class RoleService {
     )
     public RoleResponse update(UUID id, UpdateRoleRequest request) {
         Role role = getById(id);
-        if (roleRepository.existsByCodeIgnoreCaseAndIdNot(request.code(), id)) {
-            throw new DuplicateResourceException("Role code already exists: " + request.code());
+        String code = normalizeRoleCode(request.code());
+
+        if (roleRepository.existsByCodeIgnoreCaseAndIdNot(code, id)) {
+            throw new DuplicateResourceException("Role code already exists: " + code);
         }
 
-        role.setCode(request.code().trim().toUpperCase());
-        role.setName(request.name().trim());
+        role.setCode(code);
+        role.setName(normalizeText(request.name()));
         role.setDescription(request.description());
         applyPermissions(role, request.permissions());
 
-        Role saved = roleRepository.save(role);
-        RoleResponse response = toResponse(saved);
-        eventPublisher.publish(
+        return saveAndPublish(
+                role,
                 messagingProperties.getTopics().getRoleUpdated(),
-                "RoleUpdated",
-                "ROLE",
-                saved.getId(),
-                response
+                "RoleUpdated"
         );
-        return response;
     }
 
     public RoleResponse toResponse(Role role) {
@@ -144,58 +136,91 @@ public class RoleService {
         Set<PermissionResolutionService.ResolvedPermission> resolvedPermissions =
                 permissionResolutionService.resolveAll(permissions);
 
-        Set<String> legacyAuthorities = resolvedPermissions.stream()
-                .map(PermissionResolutionService.ResolvedPermission::legacyAuthority)
-                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+        Set<String> legacyAuthorities = new LinkedHashSet<>();
+        for (PermissionResolutionService.ResolvedPermission resolvedPermission : resolvedPermissions) {
+            legacyAuthorities.add(resolvedPermission.legacyAuthority());
+        }
 
         role.setPermissions(legacyAuthorities);
-        reconcilePermissionGrants(role, resolvedPermissions);
+        syncPermissionGrants(role, resolvedPermissions);
     }
 
-    private void reconcilePermissionGrants(Role role,
-                                           Set<PermissionResolutionService.ResolvedPermission> resolvedPermissions) {
-        Map<UUID, PermissionResolutionService.ResolvedPermission> desiredByPermissionId = resolvedPermissions.stream()
-                .collect(Collectors.toMap(
-                        resolved -> resolved.permission().getId(),
-                        Function.identity(),
-                        (left, right) -> left
-                ));
+    private RoleResponse saveAndPublish(Role role, String topic, String eventType) {
+        Role saved = roleRepository.save(role);
+        RoleResponse response = toResponse(saved);
+
+        eventPublisher.publish(
+                topic,
+                eventType,
+                "ROLE",
+                saved.getId(),
+                response
+        );
+
+        return response;
+    }
+
+    private void syncPermissionGrants(
+            Role role,
+            Set<PermissionResolutionService.ResolvedPermission> resolvedPermissions
+    ) {
+        Map<UUID, PermissionResolutionService.ResolvedPermission> desiredByPermissionId =
+                new LinkedHashMap<>();
+
+        for (PermissionResolutionService.ResolvedPermission resolvedPermission : resolvedPermissions) {
+            UUID permissionId = resolvedPermission.permission().getId();
+            desiredByPermissionId.putIfAbsent(permissionId, resolvedPermission);
+        }
 
         Set<UUID> seenPermissionIds = new LinkedHashSet<>();
         Iterator<RolePermissionGrant> iterator = role.getPermissionGrants().iterator();
+
         while (iterator.hasNext()) {
             RolePermissionGrant existingGrant = iterator.next();
             UUID permissionId = existingGrant.getPermission().getId();
-            PermissionResolutionService.ResolvedPermission desired = desiredByPermissionId.get(permissionId);
+            PermissionResolutionService.ResolvedPermission desiredPermission =
+                    desiredByPermissionId.get(permissionId);
 
             boolean duplicateInCollection = !seenPermissionIds.add(permissionId);
-            boolean permissionRemoved = desired == null;
-            boolean effectMismatch = desired != null && existingGrant.getEffect() != PermissionEffect.ALLOW;
+            boolean permissionRemoved = desiredPermission == null;
+            boolean wrongEffect = desiredPermission != null
+                    && existingGrant.getEffect() != PermissionEffect.ALLOW;
 
             if (duplicateInCollection || permissionRemoved) {
                 iterator.remove();
                 continue;
             }
 
-            if (effectMismatch) {
+            if (wrongEffect) {
                 existingGrant.setEffect(PermissionEffect.ALLOW);
             }
         }
 
-        Set<UUID> existingPermissionIds = role.getPermissionGrants().stream()
-                .map(grant -> grant.getPermission().getId())
-                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+        Set<UUID> existingPermissionIds = new LinkedHashSet<>();
+        for (RolePermissionGrant existingGrant : role.getPermissionGrants()) {
+            existingPermissionIds.add(existingGrant.getPermission().getId());
+        }
 
-        desiredByPermissionId.forEach((permissionId, resolved) -> {
+        for (PermissionResolutionService.ResolvedPermission resolvedPermission :
+                desiredByPermissionId.values()) {
+            UUID permissionId = resolvedPermission.permission().getId();
             if (existingPermissionIds.contains(permissionId)) {
-                return;
+                continue;
             }
 
             RolePermissionGrant grant = new RolePermissionGrant();
             grant.setRole(role);
-            grant.setPermission(resolved.permission());
+            grant.setPermission(resolvedPermission.permission());
             grant.setEffect(PermissionEffect.ALLOW);
             role.getPermissionGrants().add(grant);
-        });
+        }
+    }
+
+    private String normalizeRoleCode(String value) {
+        return value.trim().toUpperCase();
+    }
+
+    private String normalizeText(String value) {
+        return value.trim();
     }
 }

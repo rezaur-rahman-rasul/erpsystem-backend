@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TaxCodeController {
 
-    private final TaxCodeService service;
+    private final TaxCodeService taxCodeService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('master-data:tax-code:create')")
     public ApiResponse<TaxCodeResponse> create(@Valid @RequestBody CreateTaxCodeRequest request) {
-        return ApiResponse.success(service.create(request), "Tax code created");
+        return ApiResponse.success(taxCodeService.create(request), "Tax code created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('master-data:tax-code:view')")
     public ApiResponse<List<TaxCodeResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(taxCodeService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:tax-code:view')")
     public ApiResponse<TaxCodeResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.toResponse(service.getById(id)));
+        return ApiResponse.success(taxCodeService.toResponse(taxCodeService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:tax-code:update')")
     public ApiResponse<TaxCodeResponse> update(@PathVariable UUID id,
                                                @Valid @RequestBody UpdateTaxCodeRequest request) {
-        return ApiResponse.success(service.update(id, request), "Tax code updated");
+        return ApiResponse.success(taxCodeService.update(id, request), "Tax code updated");
     }
 }

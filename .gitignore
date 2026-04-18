@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local artifacts ###
+*.log
+*.err.log
+*.zip

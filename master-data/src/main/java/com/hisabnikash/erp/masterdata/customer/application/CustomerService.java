@@ -23,7 +23,7 @@ import java.util.UUID;
 @Transactional
 public class CustomerService {
 
-    private final CustomerRepository repository;
+    private final CustomerRepository customerRepository;
     private final MasterDataOwnershipService ownershipService;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
@@ -32,13 +32,13 @@ public class CustomerService {
     public CustomerResponse create(CreateCustomerRequest request) {
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCase(legalEntityId, request.code())) {
+        if (customerRepository.existsByLegalEntityIdAndCodeIgnoreCase(legalEntityId, request.code())) {
             throw new DuplicateResourceException("Customer code already exists: " + request.code());
         }
 
         Customer customer = new Customer();
         apply(customer, tenantId, legalEntityId, request.code(), request.name(), request.email(), request.phone(), request.taxNumber(), request.active());
-        Customer saved = repository.save(customer);
+        Customer saved = customerRepository.save(customer);
         CustomerResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getCustomerCreated(),
@@ -52,14 +52,14 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public List<CustomerResponse> getAll() {
-        return ownershipService.filterAccessible(repository.findAll()).stream()
+        return ownershipService.filterAccessible(customerRepository.findAll()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Customer getById(UUID id) {
-        Customer customer = repository.findById(id)
+        Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + id));
         return ownershipService.requireReadable(customer, "Customer");
     }
@@ -69,12 +69,12 @@ public class CustomerService {
         Customer customer = getById(id);
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(legalEntityId, request.code(), id)) {
+        if (customerRepository.existsByLegalEntityIdAndCodeIgnoreCaseAndIdNot(legalEntityId, request.code(), id)) {
             throw new DuplicateResourceException("Customer code already exists: " + request.code());
         }
 
         apply(customer, tenantId, legalEntityId, request.code(), request.name(), request.email(), request.phone(), request.taxNumber(), request.active());
-        Customer saved = repository.save(customer);
+        Customer saved = customerRepository.save(customer);
         CustomerResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getCustomerUpdated(),

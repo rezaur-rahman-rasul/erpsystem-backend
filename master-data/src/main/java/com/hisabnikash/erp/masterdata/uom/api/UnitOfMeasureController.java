@@ -26,31 +26,31 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UnitOfMeasureController {
 
-    private final UnitOfMeasureService service;
+    private final UnitOfMeasureService unitOfMeasureService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('master-data:uom:create')")
     public ApiResponse<UnitOfMeasureResponse> create(@Valid @RequestBody CreateUnitOfMeasureRequest request) {
-        return ApiResponse.success(service.create(request), "Unit of measure created");
+        return ApiResponse.success(unitOfMeasureService.create(request), "Unit of measure created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('master-data:uom:view')")
     public ApiResponse<List<UnitOfMeasureResponse>> getAll() {
-        return ApiResponse.success(service.getAll());
+        return ApiResponse.success(unitOfMeasureService.getAll());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:uom:view')")
     public ApiResponse<UnitOfMeasureResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(service.toResponse(service.getById(id)));
+        return ApiResponse.success(unitOfMeasureService.toResponse(unitOfMeasureService.getById(id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:uom:update')")
     public ApiResponse<UnitOfMeasureResponse> update(@PathVariable UUID id,
                                                      @Valid @RequestBody UpdateUnitOfMeasureRequest request) {
-        return ApiResponse.success(service.update(id, request), "Unit of measure updated");
+        return ApiResponse.success(unitOfMeasureService.update(id, request), "Unit of measure updated");
     }
 }

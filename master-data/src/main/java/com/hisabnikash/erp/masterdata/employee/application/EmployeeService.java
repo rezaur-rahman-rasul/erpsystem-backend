@@ -23,7 +23,7 @@ import java.util.UUID;
 @Transactional
 public class EmployeeService {
 
-    private final EmployeeRepository repository;
+    private final EmployeeRepository employeeRepository;
     private final MasterDataOwnershipService ownershipService;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
@@ -32,13 +32,13 @@ public class EmployeeService {
     public EmployeeResponse create(CreateEmployeeRequest request) {
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndEmployeeNumberIgnoreCase(legalEntityId, request.employeeNumber())) {
+        if (employeeRepository.existsByLegalEntityIdAndEmployeeNumberIgnoreCase(legalEntityId, request.employeeNumber())) {
             throw new DuplicateResourceException("Employee number already exists: " + request.employeeNumber());
         }
 
         Employee employee = new Employee();
         apply(employee, tenantId, legalEntityId, request.employeeNumber(), request.fullName(), request.email(), request.phone(), request.designation(), request.active());
-        Employee saved = repository.save(employee);
+        Employee saved = employeeRepository.save(employee);
         EmployeeResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getEmployeeCreated(),
@@ -52,14 +52,14 @@ public class EmployeeService {
 
     @Transactional(readOnly = true)
     public List<EmployeeResponse> getAll() {
-        return ownershipService.filterAccessible(repository.findAll()).stream()
+        return ownershipService.filterAccessible(employeeRepository.findAll()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Employee getById(UUID id) {
-        Employee employee = repository.findById(id)
+        Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + id));
         return ownershipService.requireReadable(employee, "Employee");
     }
@@ -69,12 +69,12 @@ public class EmployeeService {
         Employee employee = getById(id);
         String tenantId = ownershipService.requireCurrentTenantId();
         UUID legalEntityId = ownershipService.requireAccessibleLegalEntityId(request.legalEntityId());
-        if (repository.existsByLegalEntityIdAndEmployeeNumberIgnoreCaseAndIdNot(legalEntityId, request.employeeNumber(), id)) {
+        if (employeeRepository.existsByLegalEntityIdAndEmployeeNumberIgnoreCaseAndIdNot(legalEntityId, request.employeeNumber(), id)) {
             throw new DuplicateResourceException("Employee number already exists: " + request.employeeNumber());
         }
 
         apply(employee, tenantId, legalEntityId, request.employeeNumber(), request.fullName(), request.email(), request.phone(), request.designation(), request.active());
-        Employee saved = repository.save(employee);
+        Employee saved = employeeRepository.save(employee);
         EmployeeResponse response = toResponse(saved);
         eventPublisher.publish(
                 messagingProperties.getTopics().getEmployeeUpdated(),

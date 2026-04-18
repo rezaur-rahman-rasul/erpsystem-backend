@@ -26,20 +26,20 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class OrganizationAccessController {
 
-    private final OrganizationAccessService service;
+    private final OrganizationAccessService organizationAccessService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('identity:access:create')")
     public ApiResponse<OrganizationAccessResponse> create(@PathVariable UUID userId,
                                                           @Valid @RequestBody CreateOrganizationAccessRequest request) {
-        return ApiResponse.success(service.create(userId, request), "Organization access created");
+        return ApiResponse.success(organizationAccessService.create(userId, request), "Organization access created");
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('identity:access:view')")
     public ApiResponse<Set<OrganizationAccessResponse>> getAll(@PathVariable UUID userId) {
-        return ApiResponse.success(service.getAllByUserId(userId));
+        return ApiResponse.success(organizationAccessService.getAllByUserId(userId));
     }
 
     @PutMapping("/{accessId}")
@@ -47,6 +47,6 @@ public class OrganizationAccessController {
     public ApiResponse<OrganizationAccessResponse> update(@PathVariable UUID userId,
                                                           @PathVariable UUID accessId,
                                                           @Valid @RequestBody UpdateOrganizationAccessRequest request) {
-        return ApiResponse.success(service.update(userId, accessId, request), "Organization access updated");
+        return ApiResponse.success(organizationAccessService.update(userId, accessId, request), "Organization access updated");
     }
 }
