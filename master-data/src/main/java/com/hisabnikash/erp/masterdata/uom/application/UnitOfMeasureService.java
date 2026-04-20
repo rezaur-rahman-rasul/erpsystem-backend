@@ -1,6 +1,7 @@
 package com.hisabnikash.erp.masterdata.uom.application;
 
 import com.hisabnikash.erp.masterdata.audit.aop.Auditable;
+import com.hisabnikash.erp.masterdata.common.cache.MasterDataLookupCache;
 import com.hisabnikash.erp.masterdata.common.constants.CacheNames;
 import com.hisabnikash.erp.masterdata.common.exception.DuplicateResourceException;
 import com.hisabnikash.erp.masterdata.common.exception.ResourceNotFoundException;
@@ -29,6 +30,7 @@ public class UnitOfMeasureService {
     private final UnitOfMeasureRepository unitOfMeasureRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
+    private final MasterDataLookupCache masterDataLookupCache;
 
     @Auditable(action = "CREATE_UNIT_OF_MEASURE")
     @CacheEvict(cacheNames = {CacheNames.UNIT_OF_MEASURE_BY_ID, CacheNames.UNIT_OF_MEASURE_LIST}, allEntries = true)
@@ -53,7 +55,7 @@ public class UnitOfMeasureService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.UNIT_OF_MEASURE_LIST, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.UNIT_OF_MEASURE_LIST, key = "'ALL'", sync = true)
     public List<UnitOfMeasureResponse> getAll() {
         return unitOfMeasureRepository.findAll().stream()
                 .map(this::toResponse)
@@ -61,10 +63,15 @@ public class UnitOfMeasureService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.UNIT_OF_MEASURE_BY_ID, key = "#id")
     public UnitOfMeasure getById(UUID id) {
         return unitOfMeasureRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Unit of measure not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public UnitOfMeasureResponse getResponseById(UUID id) {
+        return masterDataLookupCache.findUnitOfMeasureResponseById(id)
+                .getOrThrow(() -> new ResourceNotFoundException("Unit of measure not found: " + id));
     }
 
     @Auditable(action = "UPDATE_UNIT_OF_MEASURE")

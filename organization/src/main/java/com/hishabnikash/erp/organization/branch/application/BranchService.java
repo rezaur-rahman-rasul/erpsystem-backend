@@ -9,6 +9,7 @@ import com.hishabnikash.erp.organization.branch.dto.UpdateBranchRequest;
 import com.hishabnikash.erp.organization.branch.infrastructure.BranchRepository;
 import com.hishabnikash.erp.organization.branch.mapper.BranchMapper;
 import com.hishabnikash.erp.organization.businessunit.infrastructure.BusinessUnitRepository;
+import com.hishabnikash.erp.organization.common.cache.OrganizationLookupCache;
 import com.hishabnikash.erp.organization.common.constants.CacheNames;
 import com.hishabnikash.erp.organization.common.exception.DuplicateResourceException;
 import com.hishabnikash.erp.organization.common.exception.InvalidRequestException;
@@ -41,6 +42,7 @@ public class BranchService {
     private final LegalEntityRepository legalEntityRepository;
     private final OrganizationAccessReferenceRepository organizationAccessReferenceRepository;
     private final WarehouseReferenceRepository warehouseReferenceRepository;
+    private final OrganizationLookupCache organizationLookupCache;
 
     @Auditable(action = "CREATE_BRANCH")
     @CacheEvict(cacheNames = {CacheNames.BRANCH_BY_ID, CacheNames.ORGANIZATION_TREE}, allEntries = true)
@@ -68,9 +70,9 @@ public class BranchService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.BRANCH_BY_ID, key = "#id")
     public BranchResponse getById(UUID id) {
-        return branchMapper.toResponse(findBranch(id));
+        return organizationLookupCache.findBranchResponseById(id)
+                .getOrThrow(() -> new ResourceNotFoundException("Branch not found: " + id));
     }
 
     @Auditable(action = "UPDATE_BRANCH")

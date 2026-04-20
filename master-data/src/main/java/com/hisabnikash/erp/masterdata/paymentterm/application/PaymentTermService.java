@@ -1,6 +1,7 @@
 package com.hisabnikash.erp.masterdata.paymentterm.application;
 
 import com.hisabnikash.erp.masterdata.audit.aop.Auditable;
+import com.hisabnikash.erp.masterdata.common.cache.MasterDataLookupCache;
 import com.hisabnikash.erp.masterdata.common.constants.CacheNames;
 import com.hisabnikash.erp.masterdata.common.exception.DuplicateResourceException;
 import com.hisabnikash.erp.masterdata.common.exception.ResourceNotFoundException;
@@ -30,6 +31,7 @@ public class PaymentTermService {
     private final PaymentTermRepository paymentTermRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
+    private final MasterDataLookupCache masterDataLookupCache;
 
     @Auditable(action = "CREATE_PAYMENT_TERM")
     @CacheEvict(cacheNames = {CacheNames.PAYMENT_TERM_BY_ID, CacheNames.PAYMENT_TERM_LIST}, allEntries = true)
@@ -54,7 +56,7 @@ public class PaymentTermService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.PAYMENT_TERM_LIST, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.PAYMENT_TERM_LIST, key = "'ALL'", sync = true)
     public List<PaymentTermResponse> getAll() {
         return paymentTermRepository.findAll().stream()
                 .map(this::toResponse)
@@ -62,10 +64,15 @@ public class PaymentTermService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.PAYMENT_TERM_BY_ID, key = "#id")
     public PaymentTerm getById(UUID id) {
         return paymentTermRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment term not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public PaymentTermResponse getResponseById(UUID id) {
+        return masterDataLookupCache.findPaymentTermResponseById(id)
+                .getOrThrow(() -> new ResourceNotFoundException("Payment term not found: " + id));
     }
 
     @Auditable(action = "UPDATE_PAYMENT_TERM")

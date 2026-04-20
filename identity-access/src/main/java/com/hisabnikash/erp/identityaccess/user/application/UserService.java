@@ -1,6 +1,7 @@
 package com.hisabnikash.erp.identityaccess.user.application;
 
 import com.hisabnikash.erp.identityaccess.audit.aop.Auditable;
+import com.hisabnikash.erp.identityaccess.common.cache.IdentityAccessLookupCache;
 import com.hisabnikash.erp.identityaccess.common.constants.CacheNames;
 import com.hisabnikash.erp.identityaccess.common.exception.DuplicateResourceException;
 import com.hisabnikash.erp.identityaccess.common.exception.InvalidRequestException;
@@ -8,14 +9,11 @@ import com.hisabnikash.erp.identityaccess.common.exception.ResourceNotFoundExcep
 import com.hisabnikash.erp.identityaccess.config.properties.MessagingProperties;
 import com.hisabnikash.erp.identityaccess.infrastructure.messaging.EventPublisher;
 import com.hisabnikash.erp.identityaccess.integration.organization.infrastructure.TenantProfileReferenceRepository;
-import com.hisabnikash.erp.identityaccess.organizationaccess.dto.OrganizationAccessResponse;
-import com.hisabnikash.erp.identityaccess.organizationaccess.infrastructure.OrganizationAccessAssignmentRepository;
 import com.hisabnikash.erp.identityaccess.role.application.RoleService;
 import com.hisabnikash.erp.identityaccess.role.domain.Role;
 import com.hisabnikash.erp.identityaccess.user.domain.UserAccount;
 import com.hisabnikash.erp.identityaccess.user.domain.UserStatus;
 import com.hisabnikash.erp.identityaccess.user.dto.CreateUserRequest;
-import com.hisabnikash.erp.identityaccess.user.dto.RoleSummaryResponse;
 import com.hisabnikash.erp.identityaccess.user.dto.UpdateUserRequest;
 import com.hisabnikash.erp.identityaccess.user.dto.UpdateUserStatusRequest;
 import com.hisabnikash.erp.identityaccess.user.dto.UserResponse;
@@ -42,8 +40,9 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
-    private final OrganizationAccessAssignmentRepository organizationAccessRepository;
     private final TenantProfileReferenceRepository tenantProfileReferenceRepository;
+    private final UserResponseAssembler userResponseAssembler;
+    private final IdentityAccessLookupCache identityAccessLookupCache;
 
     @Auditable(action = "CREATE_USER")
     @CacheEvict(cacheNames = {CacheNames.USER_BY_ID, CacheNames.USER_LIST}, allEntries = true)
@@ -74,7 +73,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.USER_LIST, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.USER_LIST, key = "'ALL'", sync = true)
     public List<UserResponse> getAll() {
         return userRepository.findAll().stream()
                 .map(this::toResponse)
@@ -88,9 +87,9 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.USER_BY_ID, key = "#id")
     public UserResponse getResponseById(UUID id) {
-        return toResponse(getById(id));
+        return identityAccessLookupCache.findUserResponseById(id)
+                .getOrThrow(() -> new ResourceNotFoundException("User not found: " + id));
     }
 
     @Auditable(action = "UPDATE_USER")
@@ -133,20 +132,7 @@ public class UserService {
     }
 
     public UserResponse toResponse(UserAccount user) {
-        return new UserResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getDisplayName(),
-                user.getTenantId(),
-                user.getStatus(),
-                user.getCreatedBy(),
-                user.getCreatedAt(),
-                user.getUpdatedBy(),
-                user.getUpdatedAt(),
-                buildRoleSummaries(user),
-                buildOrganizationAccessResponses(user)
-        );
+        return userResponseAssembler.toResponse(user);
     }
 
     private UserResponse saveAndPublish(UserAccount user, String topic, String eventType) {
@@ -162,36 +148,6 @@ public class UserService {
         );
 
         return response;
-    }
-
-    private Set<RoleSummaryResponse> buildRoleSummaries(UserAccount user) {
-        Set<RoleSummaryResponse> roles = new LinkedHashSet<>();
-
-        for (Role role : user.getRoles()) {
-            roles.add(new RoleSummaryResponse(role.getId(), role.getCode(), role.getName()));
-        }
-
-        return roles;
-    }
-
-    private Set<OrganizationAccessResponse> buildOrganizationAccessResponses(UserAccount user) {
-        Set<OrganizationAccessResponse> organizationAccesses = new LinkedHashSet<>();
-
-        organizationAccessRepository.findByUser_Id(user.getId()).forEach(access ->
-                organizationAccesses.add(new OrganizationAccessResponse(
-                        access.getId(),
-                        user.getId(),
-                        access.getLegalEntityId(),
-                        access.getBranchId(),
-                        access.isPrimaryAccess(),
-                        access.getCreatedBy(),
-                        access.getCreatedAt(),
-                        access.getUpdatedBy(),
-                        access.getUpdatedAt()
-                ))
-        );
-
-        return organizationAccesses;
     }
 
     private void ensureUsernameAvailable(String username, UUID currentUserId) {

@@ -1,6 +1,7 @@
 package com.hisabnikash.erp.identityaccess.user.application;
 
 import com.hisabnikash.erp.identityaccess.common.exception.DuplicateResourceException;
+import com.hisabnikash.erp.identityaccess.common.cache.IdentityAccessLookupCache;
 import com.hisabnikash.erp.identityaccess.config.properties.MessagingProperties;
 import com.hisabnikash.erp.identityaccess.infrastructure.messaging.EventPublisher;
 import com.hisabnikash.erp.identityaccess.integration.organization.infrastructure.TenantProfileReferenceRepository;
@@ -48,6 +49,9 @@ class UserServiceTest {
     @Mock
     private TenantProfileReferenceRepository tenantProfileReferenceRepository;
 
+    @Mock
+    private IdentityAccessLookupCache identityAccessLookupCache;
+
     private UserService userService;
     private StubRoleService roleService;
     private RecordingEventPublisher eventPublisher;
@@ -68,8 +72,9 @@ class UserServiceTest {
                 passwordEncoder,
                 eventPublisher,
                 messagingProperties,
-                organizationAccessRepository,
-                tenantProfileReferenceRepository
+                tenantProfileReferenceRepository,
+                new UserResponseAssembler(organizationAccessRepository),
+                identityAccessLookupCache
         );
     }
 
@@ -186,7 +191,7 @@ class UserServiceTest {
         private int lookupCount;
 
         private StubRoleService() {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
         }
 
         @Override

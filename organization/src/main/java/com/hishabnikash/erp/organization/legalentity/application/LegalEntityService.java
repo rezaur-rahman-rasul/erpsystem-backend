@@ -1,6 +1,7 @@
 package com.hishabnikash.erp.organization.legalentity.application;
 
 import com.hishabnikash.erp.organization.audit.aop.Auditable;
+import com.hishabnikash.erp.organization.common.cache.OrganizationLookupCache;
 import com.hishabnikash.erp.organization.common.constants.CacheNames;
 import com.hishabnikash.erp.organization.common.exception.DuplicateResourceException;
 import com.hishabnikash.erp.organization.common.exception.ResourceNotFoundException;
@@ -32,6 +33,7 @@ public class LegalEntityService {
     private final LegalEntityMapper legalEntityMapper;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
+    private final OrganizationLookupCache organizationLookupCache;
 
     @Auditable(action = "CREATE_LEGAL_ENTITY")
     @CacheEvict(cacheNames = {CacheNames.LEGAL_ENTITY_BY_ID, CacheNames.ORGANIZATION_TREE}, allEntries = true)
@@ -58,12 +60,9 @@ public class LegalEntityService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.LEGAL_ENTITY_BY_ID, key = "#id")
     public LegalEntityResponse getById(UUID id) {
-        LegalEntity entity = legalEntityRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Legal entity not found: " + id));
-
-        return legalEntityMapper.toResponse(entity);
+        return organizationLookupCache.findLegalEntityResponseById(id)
+                .getOrThrow(() -> new ResourceNotFoundException("Legal entity not found: " + id));
     }
 
     @Auditable(action = "UPDATE_LEGAL_ENTITY")

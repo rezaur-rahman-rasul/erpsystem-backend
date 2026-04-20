@@ -30,7 +30,7 @@ public class AuthorizationCatalogService {
     private final ResourcePermissionRepository resourcePermissionRepository;
     private final PermissionAliasRepository permissionAliasRepository;
 
-    @Cacheable(cacheNames = CacheNames.AUTHORIZATION_ACTIONS, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.AUTHORIZATION_ACTIONS, key = "'ALL'", sync = true)
     public List<AuthorizationActionResponse> getActions() {
         return actionRepository.findAll().stream()
                 .sorted((left, right) -> left.getCode().compareToIgnoreCase(right.getCode()))
@@ -38,14 +38,14 @@ public class AuthorizationCatalogService {
                 .toList();
     }
 
-    @Cacheable(cacheNames = CacheNames.AUTHORIZATION_PERMISSIONS, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.AUTHORIZATION_PERMISSIONS, key = "'ALL'", sync = true)
     public List<ResourcePermissionResponse> getPermissions() {
         return resourcePermissionRepository.findAllByOrderByPermissionKeyAsc().stream()
                 .map(this::toPermissionResponse)
                 .toList();
     }
 
-    @Cacheable(cacheNames = CacheNames.AUTHORIZATION_RESOURCES, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.AUTHORIZATION_RESOURCES, key = "'ALL'", sync = true)
     public List<AuthorizationResourceResponse> getResources(String query, String serviceCode, String resourceType) {
         return resourceRepository.findAllByOrderByFullCodeAsc().stream()
                 .filter(resource -> matchesQuery(resource, query))

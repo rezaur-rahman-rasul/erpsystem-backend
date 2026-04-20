@@ -44,7 +44,7 @@ public class PaymentTermController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:payment-term:view')")
     public ApiResponse<PaymentTermResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(paymentTermService.toResponse(paymentTermService.getById(id)));
+        return ApiResponse.success(paymentTermService.getResponseById(id));
     }
 
     @PutMapping("/{id}")

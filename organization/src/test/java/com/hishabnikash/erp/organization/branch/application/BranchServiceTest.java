@@ -8,6 +8,7 @@ import com.hishabnikash.erp.organization.branch.dto.UpdateBranchRequest;
 import com.hishabnikash.erp.organization.branch.infrastructure.BranchRepository;
 import com.hishabnikash.erp.organization.branch.mapper.BranchMapper;
 import com.hishabnikash.erp.organization.businessunit.infrastructure.BusinessUnitRepository;
+import com.hishabnikash.erp.organization.common.cache.OrganizationLookupCache;
 import com.hishabnikash.erp.organization.common.exception.InvalidRequestException;
 import com.hishabnikash.erp.organization.config.properties.MessagingProperties;
 import com.hishabnikash.erp.organization.infrastructure.messaging.EventPublisher;
@@ -49,6 +50,9 @@ class BranchServiceTest {
     @Mock
     private WarehouseReferenceRepository warehouseReferenceRepository;
 
+    @Mock
+    private OrganizationLookupCache organizationLookupCache;
+
     private BranchService branchService;
     private RecordingEventPublisher eventPublisher;
 
@@ -68,7 +72,8 @@ class BranchServiceTest {
                 businessUnitRepository,
                 legalEntityRepository,
                 organizationAccessReferenceRepository,
-                warehouseReferenceRepository
+                warehouseReferenceRepository,
+                organizationLookupCache
         );
     }
 

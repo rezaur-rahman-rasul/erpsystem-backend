@@ -80,7 +80,7 @@ public class OrganizationAccessService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.ORGANIZATION_ACCESS_BY_USER, key = "#userId")
+    @Cacheable(cacheNames = CacheNames.ORGANIZATION_ACCESS_BY_USER, key = "#userId", sync = true)
     public Set<OrganizationAccessResponse> getAllByUserId(UUID userId) {
         resolveUser(userId);
         return organizationAccessAssignmentRepository.findByUser_Id(userId).stream()

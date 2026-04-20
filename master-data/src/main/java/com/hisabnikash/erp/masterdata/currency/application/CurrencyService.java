@@ -1,6 +1,7 @@
 package com.hisabnikash.erp.masterdata.currency.application;
 
 import com.hisabnikash.erp.masterdata.audit.aop.Auditable;
+import com.hisabnikash.erp.masterdata.common.cache.MasterDataLookupCache;
 import com.hisabnikash.erp.masterdata.common.constants.CacheNames;
 import com.hisabnikash.erp.masterdata.common.exception.DuplicateResourceException;
 import com.hisabnikash.erp.masterdata.common.exception.ResourceNotFoundException;
@@ -28,6 +29,7 @@ public class CurrencyService {
     private final CurrencyRepository currencyRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
+    private final MasterDataLookupCache masterDataLookupCache;
 
     @Auditable(action = "CREATE_CURRENCY")
     @CacheEvict(cacheNames = {CacheNames.CURRENCY_BY_ID, CacheNames.CURRENCY_LIST}, allEntries = true)
@@ -51,7 +53,7 @@ public class CurrencyService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.CURRENCY_LIST, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.CURRENCY_LIST, key = "'ALL'", sync = true)
     public List<CurrencyResponse> getAll() {
         return currencyRepository.findAll().stream()
                 .map(this::toResponse)
@@ -59,10 +61,15 @@ public class CurrencyService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.CURRENCY_BY_ID, key = "#id")
     public Currency getById(UUID id) {
         return currencyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Currency not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public CurrencyResponse getResponseById(UUID id) {
+        return masterDataLookupCache.findCurrencyResponseById(id)
+                .getOrThrow(() -> new ResourceNotFoundException("Currency not found: " + id));
     }
 
     @Auditable(action = "UPDATE_CURRENCY")

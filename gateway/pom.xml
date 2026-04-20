@@ -66,6 +66,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.hisabnikash.erp</groupId>
+            <artifactId>cache-support</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>

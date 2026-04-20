@@ -17,7 +17,9 @@ import com.hishabnikash.erp.organization.hierarchy.dto.HierarchyValidationRespon
 import com.hishabnikash.erp.organization.hierarchy.dto.LocationSummaryResponse;
 import com.hishabnikash.erp.organization.hierarchy.dto.OrganizationTreeResponse;
 import com.hishabnikash.erp.organization.legalentity.domain.LegalEntity;
+import com.hishabnikash.erp.organization.legalentity.dto.LegalEntityResponse;
 import com.hishabnikash.erp.organization.legalentity.infrastructure.LegalEntityRepository;
+import com.hishabnikash.erp.organization.legalentity.application.LegalEntityService;
 import com.hishabnikash.erp.organization.location.domain.Location;
 import com.hishabnikash.erp.organization.location.infrastructure.LocationRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,8 +45,9 @@ public class OrganizationHierarchyService {
     private final DepartmentRepository departmentRepository;
     private final LocationRepository locationRepository;
     private final DepartmentHierarchyValidator hierarchyValidator;
+    private final LegalEntityService legalEntityService;
 
-    @Cacheable(cacheNames = CacheNames.ORGANIZATION_TREE, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.ORGANIZATION_TREE, key = "'ALL'", sync = true)
     public List<OrganizationTreeResponse> getAllTrees() {
         List<LegalEntity> legalEntities = new ArrayList<>(legalEntityRepository.findAll());
         legalEntities.sort(Comparator.comparing(LegalEntity::getCode));
@@ -57,10 +60,9 @@ public class OrganizationHierarchyService {
         return trees;
     }
 
-    @Cacheable(cacheNames = CacheNames.ORGANIZATION_TREE, key = "#legalEntityId")
+    @Cacheable(cacheNames = CacheNames.ORGANIZATION_TREE, key = "#legalEntityId", sync = true)
     public OrganizationTreeResponse getTree(UUID legalEntityId) {
-        LegalEntity legalEntity = legalEntityRepository.findById(legalEntityId)
-                .orElseThrow(() -> new ResourceNotFoundException("Legal entity not found: " + legalEntityId));
+        LegalEntityResponse legalEntity = legalEntityService.getById(legalEntityId);
         return buildTree(legalEntity);
     }
 
@@ -89,14 +91,55 @@ public class OrganizationHierarchyService {
         List<Department> departments = departmentRepository.findByLegalEntityId(legalEntity.getId());
         List<Location> locations = locationRepository.findByLegalEntityId(legalEntity.getId());
 
+        return buildTreeSnapshot(
+                legalEntity.getId(),
+                legalEntity.getCode(),
+                legalEntity.getLegalName(),
+                legalEntity.getStatus().name(),
+                businessUnits,
+                branches,
+                departments,
+                locations
+        );
+    }
+
+    private OrganizationTreeResponse buildTree(LegalEntityResponse legalEntity) {
+        List<BusinessUnit> businessUnits = businessUnitRepository.findByLegalEntityId(legalEntity.getId());
+        List<Branch> branches = branchRepository.findByLegalEntityId(legalEntity.getId());
+        List<Department> departments = departmentRepository.findByLegalEntityId(legalEntity.getId());
+        List<Location> locations = locationRepository.findByLegalEntityId(legalEntity.getId());
+
+        return buildTreeSnapshot(
+                legalEntity.getId(),
+                legalEntity.getCode(),
+                legalEntity.getLegalName(),
+                legalEntity.getStatus(),
+                businessUnits,
+                branches,
+                departments,
+                locations
+        );
+    }
+
+    private OrganizationTreeResponse buildTreeSnapshot(
+            UUID legalEntityId,
+            String legalEntityCode,
+            String legalEntityName,
+            String status,
+            List<BusinessUnit> businessUnits,
+            List<Branch> branches,
+            List<Department> departments,
+            List<Location> locations
+    ) {
+
         Map<UUID, List<Location>> locationsByBranch = groupLocationsByBranch(locations);
         Map<UUID, List<Department>> departmentsByBranch = groupDepartmentsByBranch(departments);
 
         return OrganizationTreeResponse.builder()
-                .legalEntityId(legalEntity.getId())
-                .legalEntityCode(legalEntity.getCode())
-                .legalEntityName(legalEntity.getLegalName())
-                .status(legalEntity.getStatus().name())
+                .legalEntityId(legalEntityId)
+                .legalEntityCode(legalEntityCode)
+                .legalEntityName(legalEntityName)
+                .status(status)
                 .businessUnits(buildBusinessUnitSummaries(businessUnits))
                 .branches(buildBranchTrees(branches, locationsByBranch, departmentsByBranch))
                 .build();

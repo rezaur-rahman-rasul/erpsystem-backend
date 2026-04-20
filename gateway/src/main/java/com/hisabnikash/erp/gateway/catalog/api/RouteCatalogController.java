@@ -15,7 +15,7 @@ import java.util.List;
 public class RouteCatalogController {
 
     @GetMapping
-    @Cacheable(cacheNames = CacheNames.ROUTE_CATALOG, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.ROUTE_CATALOG, key = "'ALL'", sync = true)
     public ApiResponse<List<RouteDefinitionResponse>> listRoutes() {
         return ApiResponse.success(List.of(
                 new RouteDefinitionResponse("identity-access", "/identity/**", "identity-access", false, false, true, "v1"),

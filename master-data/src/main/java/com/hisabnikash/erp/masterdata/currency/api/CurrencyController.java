@@ -44,7 +44,7 @@ public class CurrencyController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:currency:view')")
     public ApiResponse<CurrencyResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(currencyService.toResponse(currencyService.getById(id)));
+        return ApiResponse.success(currencyService.getResponseById(id));
     }
 
     @PutMapping("/{id}")

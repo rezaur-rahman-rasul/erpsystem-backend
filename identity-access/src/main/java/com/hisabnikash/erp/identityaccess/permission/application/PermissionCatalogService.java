@@ -11,7 +11,7 @@ import java.util.List;
 @Service
 public class PermissionCatalogService {
 
-    @Cacheable(cacheNames = CacheNames.PERMISSION_CATALOG, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.PERMISSION_CATALOG, key = "'ALL'", sync = true)
     public List<PermissionDefinitionResponse> getAll() {
         return PhaseOnePermissions.catalog();
     }

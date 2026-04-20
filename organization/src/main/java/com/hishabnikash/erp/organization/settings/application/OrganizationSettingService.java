@@ -3,6 +3,7 @@ package com.hishabnikash.erp.organization.settings.application;
 import com.hishabnikash.erp.organization.audit.aop.Auditable;
 import com.hishabnikash.erp.organization.branch.infrastructure.BranchRepository;
 import com.hishabnikash.erp.organization.businessunit.infrastructure.BusinessUnitRepository;
+import com.hishabnikash.erp.organization.common.cache.OrganizationLookupCache;
 import com.hishabnikash.erp.organization.common.constants.CacheNames;
 import com.hishabnikash.erp.organization.common.exception.DuplicateResourceException;
 import com.hishabnikash.erp.organization.common.exception.ResourceNotFoundException;
@@ -39,6 +40,7 @@ public class OrganizationSettingService {
     private final LocationRepository locationRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
+    private final OrganizationLookupCache organizationLookupCache;
 
     @Auditable(action = "CREATE_ORGANIZATION_SETTING")
     @CacheEvict(cacheNames = {CacheNames.SETTINGS_BY_OWNER, CacheNames.ORGANIZATION_TREE}, allEntries = true)
@@ -55,12 +57,11 @@ public class OrganizationSettingService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(
-            cacheNames = CacheNames.SETTINGS_BY_OWNER,
-            key = "#ownerType.name() + ':' + #ownerId.toString()"
-    )
     public OrganizationSettingResponse getByOwner(SettingOwnerType ownerType, UUID ownerId) {
-        return organizationSettingMapper.toResponse(findByOwner(ownerType, ownerId));
+        return organizationLookupCache.findSettingsByOwner(ownerType, ownerId)
+                .getOrThrow(() -> new ResourceNotFoundException(
+                        "Organization settings not found for owner: " + ownerType + "/" + ownerId
+                ));
     }
 
     @Auditable(action = "UPDATE_ORGANIZATION_SETTING")

@@ -1,6 +1,7 @@
 package com.hishabnikash.erp.organization.businessunit.application;
 
 import com.hishabnikash.erp.organization.audit.aop.Auditable;
+import com.hishabnikash.erp.organization.common.cache.OrganizationLookupCache;
 import com.hishabnikash.erp.organization.common.constants.CacheNames;
 import com.hishabnikash.erp.organization.common.exception.DuplicateResourceException;
 import com.hishabnikash.erp.organization.common.exception.ResourceNotFoundException;
@@ -33,6 +34,7 @@ public class BusinessUnitService {
     private final LegalEntityRepository legalEntityRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
+    private final OrganizationLookupCache organizationLookupCache;
 
     @Auditable(action = "CREATE_BUSINESS_UNIT")
     @CacheEvict(cacheNames = {CacheNames.BUSINESS_UNIT_BY_ID, CacheNames.ORGANIZATION_TREE}, allEntries = true)
@@ -60,9 +62,9 @@ public class BusinessUnitService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.BUSINESS_UNIT_BY_ID, key = "#id")
     public BusinessUnitResponse getById(UUID id) {
-        return businessUnitMapper.toResponse(findById(id));
+        return organizationLookupCache.findBusinessUnitResponseById(id)
+                .getOrThrow(() -> new ResourceNotFoundException("Business unit not found: " + id));
     }
 
     @Auditable(action = "UPDATE_BUSINESS_UNIT")

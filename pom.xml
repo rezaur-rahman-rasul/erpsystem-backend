@@ -13,6 +13,7 @@
     <description>Parent workspace for Phase 1 ERP microservices</description>
 
     <modules>
+        <module>cache-support</module>
         <module>gateway</module>
         <module>identity-access</module>
         <module>master-data</module>

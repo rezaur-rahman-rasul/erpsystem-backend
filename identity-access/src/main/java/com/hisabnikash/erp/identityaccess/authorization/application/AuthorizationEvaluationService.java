@@ -30,7 +30,7 @@ public class AuthorizationEvaluationService {
     private final UserAccountRepository userAccountRepository;
     private final PermissionResolutionService permissionResolutionService;
 
-    @Cacheable(cacheNames = CacheNames.AUTHORIZATION_EFFECTIVE_PERMISSIONS, key = "#requestedUserId != null ? #requestedUserId.toString() : 'SELF:' + T(com.hisabnikash.erp.identityaccess.common.util.SecurityUtils).getCurrentUserId().toString()")
+    @Cacheable(cacheNames = CacheNames.AUTHORIZATION_EFFECTIVE_PERMISSIONS, key = "#requestedUserId != null ? #requestedUserId.toString() : 'SELF:' + T(com.hisabnikash.erp.identityaccess.common.util.SecurityUtils).getCurrentUserId().toString()", sync = true)
     public EffectivePermissionsResponse getEffectivePermissions(UUID requestedUserId) {
         UserAccount user = resolveRequestedUser(requestedUserId);
         return new EffectivePermissionsResponse(user.getId(), collectEffectivePermissionKeys(user));

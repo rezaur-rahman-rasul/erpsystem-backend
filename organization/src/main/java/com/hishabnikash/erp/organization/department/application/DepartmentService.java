@@ -2,6 +2,7 @@ package com.hishabnikash.erp.organization.department.application;
 
 import com.hishabnikash.erp.organization.audit.aop.Auditable;
 import com.hishabnikash.erp.organization.branch.infrastructure.BranchRepository;
+import com.hishabnikash.erp.organization.common.cache.OrganizationLookupCache;
 import com.hishabnikash.erp.organization.common.constants.CacheNames;
 import com.hishabnikash.erp.organization.common.exception.DuplicateResourceException;
 import com.hishabnikash.erp.organization.common.exception.ResourceNotFoundException;
@@ -37,6 +38,7 @@ public class DepartmentService {
     private final MessagingProperties messagingProperties;
     private final LegalEntityRepository legalEntityRepository;
     private final BranchRepository branchRepository;
+    private final OrganizationLookupCache organizationLookupCache;
 
     @Auditable(action = "CREATE_DEPARTMENT")
     @CacheEvict(cacheNames = {CacheNames.DEPARTMENT_BY_ID, CacheNames.ORGANIZATION_TREE}, allEntries = true)
@@ -71,9 +73,9 @@ public class DepartmentService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.DEPARTMENT_BY_ID, key = "#id")
     public DepartmentResponse getById(UUID id) {
-        return departmentMapper.toResponse(findById(id));
+        return organizationLookupCache.findDepartmentResponseById(id)
+                .getOrThrow(() -> new ResourceNotFoundException("Department not found: " + id));
     }
 
     @Auditable(action = "UPDATE_DEPARTMENT")

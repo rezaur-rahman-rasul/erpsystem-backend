@@ -2,6 +2,7 @@ package com.hishabnikash.erp.organization.location.application;
 
 import com.hishabnikash.erp.organization.audit.aop.Auditable;
 import com.hishabnikash.erp.organization.branch.infrastructure.BranchRepository;
+import com.hishabnikash.erp.organization.common.cache.OrganizationLookupCache;
 import com.hishabnikash.erp.organization.common.constants.CacheNames;
 import com.hishabnikash.erp.organization.common.exception.DuplicateResourceException;
 import com.hishabnikash.erp.organization.common.exception.ResourceNotFoundException;
@@ -35,6 +36,7 @@ public class LocationService {
     private final BranchRepository branchRepository;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
+    private final OrganizationLookupCache organizationLookupCache;
 
     @Auditable(action = "CREATE_LOCATION")
     @CacheEvict(cacheNames = {CacheNames.LOCATION_BY_ID, CacheNames.ORGANIZATION_TREE}, allEntries = true)
@@ -65,9 +67,9 @@ public class LocationService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.LOCATION_BY_ID, key = "#id")
     public LocationResponse getById(UUID id) {
-        return locationMapper.toResponse(findById(id));
+        return organizationLookupCache.findLocationResponseById(id)
+                .getOrThrow(() -> new ResourceNotFoundException("Location not found: " + id));
     }
 
     @Auditable(action = "UPDATE_LOCATION")

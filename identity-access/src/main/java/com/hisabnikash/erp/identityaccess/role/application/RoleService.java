@@ -3,6 +3,7 @@ package com.hisabnikash.erp.identityaccess.role.application;
 import com.hisabnikash.erp.identityaccess.authorization.application.PermissionResolutionService;
 import com.hisabnikash.erp.identityaccess.authorization.domain.PermissionEffect;
 import com.hisabnikash.erp.identityaccess.authorization.domain.RolePermissionGrant;
+import com.hisabnikash.erp.identityaccess.common.cache.IdentityAccessLookupCache;
 import com.hisabnikash.erp.identityaccess.audit.aop.Auditable;
 import com.hisabnikash.erp.identityaccess.common.constants.CacheNames;
 import com.hisabnikash.erp.identityaccess.common.exception.DuplicateResourceException;
@@ -38,6 +39,7 @@ public class RoleService {
     private final PermissionResolutionService permissionResolutionService;
     private final EventPublisher eventPublisher;
     private final MessagingProperties messagingProperties;
+    private final IdentityAccessLookupCache identityAccessLookupCache;
 
     @Auditable(action = "CREATE_ROLE")
     @CacheEvict(
@@ -69,7 +71,7 @@ public class RoleService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.ROLE_LIST, key = "'ALL'")
+    @Cacheable(cacheNames = CacheNames.ROLE_LIST, key = "'ALL'", sync = true)
     public List<RoleResponse> getAll() {
         return roleRepository.findAll().stream()
                 .map(this::toResponse)
@@ -83,9 +85,9 @@ public class RoleService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = CacheNames.ROLE_BY_ID, key = "#id")
     public RoleResponse getResponseById(UUID id) {
-        return toResponse(getById(id));
+        return identityAccessLookupCache.findRoleResponseById(id)
+                .getOrThrow(() -> new ResourceNotFoundException("Role not found: " + id));
     }
 
     @Auditable(action = "UPDATE_ROLE")

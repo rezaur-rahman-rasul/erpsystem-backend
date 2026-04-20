@@ -44,7 +44,7 @@ public class UnitOfMeasureController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('master-data:uom:view')")
     public ApiResponse<UnitOfMeasureResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(unitOfMeasureService.toResponse(unitOfMeasureService.getById(id)));
+        return ApiResponse.success(unitOfMeasureService.getResponseById(id));
     }
 
     @PutMapping("/{id}")
