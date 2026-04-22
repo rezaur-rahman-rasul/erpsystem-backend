@@ -96,7 +96,7 @@ class AuthControllerIntegrationTest {
                         .content("""
                                 {
                                   "identifier": "admin",
-                                  "password": "Admin@12345",
+                                  "password": "ChangeMe123!",
                                   "tenantId": "ERP-DEFAULT"
                                 }
                                 """))

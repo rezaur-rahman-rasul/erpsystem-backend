@@ -1,0 +1,23 @@
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      repositories:
+        enabled: false
+
+# Docker Compose provides the container DNS names explicitly. These localhost
+# fallbacks keep gateway routing usable when the container profile is selected
+# outside Docker, such as from an IDE run configuration.
+services:
+  identity-access:
+    uri: ${SERVICES_IDENTITY_ACCESS_URI:http://localhost:8081}
+  master-data:
+    uri: ${SERVICES_MASTER_DATA_URI:http://localhost:8082}
+  organization:
+    uri: ${SERVICES_ORGANIZATION_URI:http://localhost:8083}
+
+management:
+  health:
+    redis:
+      enabled: true

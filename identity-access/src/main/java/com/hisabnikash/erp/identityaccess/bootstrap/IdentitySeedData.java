@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
 import java.util.Set;
 
 @Component
@@ -44,7 +45,7 @@ public class IdentitySeedData implements CommandLineRunner {
 
         UserAccount admin = userRepository.findByUsernameIgnoreCase(adminProperties.getUsername())
                 .orElseGet(() -> createAdmin(adminRole));
-        ensureAdminHasPlatformAccess(admin, adminRole);
+        synchronizeAdminAccount(admin, adminRole);
     }
 
     private void syncAdminRole(Role adminRole) {
@@ -66,9 +67,36 @@ public class IdentitySeedData implements CommandLineRunner {
         return userRepository.save(admin);
     }
 
-    private void ensureAdminHasPlatformAccess(UserAccount admin, Role adminRole) {
+    private void synchronizeAdminAccount(UserAccount admin, Role adminRole) {
+        boolean changed = false;
+
+        if (!Objects.equals(admin.getEmail(), adminProperties.getEmail())) {
+            admin.setEmail(adminProperties.getEmail());
+            changed = true;
+        }
+        if (!Objects.equals(admin.getDisplayName(), adminProperties.getDisplayName())) {
+            admin.setDisplayName(adminProperties.getDisplayName());
+            changed = true;
+        }
+        if (!Objects.equals(admin.getTenantId(), adminProperties.getTenantId())) {
+            admin.setTenantId(adminProperties.getTenantId());
+            changed = true;
+        }
+        if (admin.getStatus() != UserStatus.ACTIVE) {
+            admin.setStatus(UserStatus.ACTIVE);
+            changed = true;
+        }
+        // Keep bootstrap admin access deterministic across local and container runs.
+        if (!passwordEncoder.matches(adminProperties.getPassword(), admin.getPasswordHash())) {
+            admin.setPasswordHash(passwordEncoder.encode(adminProperties.getPassword()));
+            changed = true;
+        }
         if (admin.getRoles().stream().noneMatch(role -> role.getId().equals(adminRole.getId()))) {
             admin.getRoles().add(adminRole);
+            changed = true;
+        }
+
+        if (changed) {
             userRepository.save(admin);
         }
     }

@@ -1,0 +1,81 @@
+nameOverride: gateway
+
+image:
+  repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/erp/gateway
+  tag: nonprod-latest
+
+containerPort: 8080
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: container
+  - name: REDIS_HOST
+    value: erp-nonprod.xxxxxx.use1.cache.amazonaws.com
+  - name: REDIS_PORT
+    value: "6379"
+  - name: SPRING_DATA_REDIS_SSL_ENABLED
+    value: "true"
+  - name: APP_SECURITY_JWT_ISSUER
+    value: enterprise-platform
+  - name: SERVICES_IDENTITY_ACCESS_URI
+    value: http://identity-access.erp-identity-access.svc.cluster.local
+  - name: SERVICES_MASTER_DATA_URI
+    value: http://master-data.erp-master-data.svc.cluster.local
+  - name: SERVICES_ORGANIZATION_URI
+    value: http://organization.erp-organization.svc.cluster.local
+
+envFromSecrets:
+  - gateway-runtime
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+preStopSleepSeconds: 10
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  cpuUtilizationPercentage: 70
+  memoryUtilizationPercentage: 75
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-path: /actuator/health/readiness
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/REPLACE_ME
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+  hosts:
+    - host: api.nonprod.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+networkPolicy:
+  enabled: false
+
+externalSecret:
+  enabled: true
+  targetName: gateway-runtime
+  data:
+    - secretKey: SPRING_DATA_REDIS_PASSWORD
+      remoteKey: /erp/nonprod/gateway/runtime
+      property: SPRING_DATA_REDIS_PASSWORD
+    - secretKey: APP_SECURITY_JWT_SECRET
+      remoteKey: /erp/nonprod/gateway/runtime
+      property: APP_SECURITY_JWT_SECRET

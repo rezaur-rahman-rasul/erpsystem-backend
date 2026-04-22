@@ -1,0 +1,20 @@
+services:
+  identity-postgres:
+    ports:
+      - "${IDENTITY_DB_HOST_PORT:-5433}:5432"
+
+  master-data-postgres:
+    ports:
+      - "${MASTER_DATA_DB_HOST_PORT:-5434}:5432"
+
+  organization-postgres:
+    ports:
+      - "${ORGANIZATION_DB_HOST_PORT:-5432}:5432"
+
+  prometheus:
+    ports:
+      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
+
+  grafana:
+    ports:
+      - "${GRAFANA_HOST_PORT:-3000}:3000"

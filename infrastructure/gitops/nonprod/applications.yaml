@@ -1,0 +1,121 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: erp-bootstrap
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/HishabNikash.git
+    targetRevision: main
+    path: infrastructure/gitops/bootstrap
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway-nonprod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/HishabNikash.git
+    targetRevision: main
+    path: infrastructure/helm/charts/erp-service
+    helm:
+      releaseName: gateway
+      valueFiles:
+        - ../../values/nonprod/gateway.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: erp-gateway
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: identity-access-nonprod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/HishabNikash.git
+    targetRevision: main
+    path: infrastructure/helm/charts/erp-service
+    helm:
+      releaseName: identity-access
+      valueFiles:
+        - ../../values/nonprod/identity-access.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: erp-identity-access
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: organization-nonprod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/HishabNikash.git
+    targetRevision: main
+    path: infrastructure/helm/charts/erp-service
+    helm:
+      releaseName: organization
+      valueFiles:
+        - ../../values/nonprod/organization.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: erp-organization
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: master-data-nonprod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/HishabNikash.git
+    targetRevision: main
+    path: infrastructure/helm/charts/erp-service
+    helm:
+      releaseName: master-data
+      valueFiles:
+        - ../../values/nonprod/master-data.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: erp-master-data
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

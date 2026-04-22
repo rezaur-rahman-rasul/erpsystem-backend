@@ -12,6 +12,14 @@
     <name>HishabNikash</name>
     <description>Parent workspace for Phase 1 ERP microservices</description>
 
+    <properties>
+        <sonar.projectKey>com.hisabnikash.erp:hishabnikash</sonar.projectKey>
+        <sonar.projectName>HishabNikash Backend</sonar.projectName>
+        <sonar.sourceEncoding>UTF-8</sonar.sourceEncoding>
+        <sonar.java.source>21</sonar.java.source>
+        <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/cache-support/target/site/jacoco/jacoco.xml,${maven.multiModuleProjectDirectory}/gateway/target/site/jacoco/jacoco.xml,${maven.multiModuleProjectDirectory}/identity-access/target/site/jacoco/jacoco.xml,${maven.multiModuleProjectDirectory}/master-data/target/site/jacoco/jacoco.xml,${maven.multiModuleProjectDirectory}/organization/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+    </properties>
+
     <modules>
         <module>cache-support</module>
         <module>gateway</module>
@@ -19,4 +27,14 @@
         <module>master-data</module>
         <module>organization</module>
     </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>3.11.0.3922</version>
+            </plugin>
+        </plugins>
+    </build>
 </project>

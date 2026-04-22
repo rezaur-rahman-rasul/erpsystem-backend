@@ -75,6 +75,9 @@ Run the full Phase 1 stack with:
 docker compose -f docker-compose.phase1.yml up --build
 ```
 
+The shared stack now attaches every container to the explicitly named bridge network
+`hishabnikash-phase1-network`, which Docker Compose creates automatically.
+
 The central stack now includes observability services:
 
 - Prometheus: `http://localhost:9090`
@@ -102,6 +105,7 @@ docker compose -f organization/docker-compose.yml up -d
 
 These service-local compose files are dependency-only stacks for isolated module development.
 They intentionally reuse the default localhost ports (`5432`, `6379`, `9092`), so they should be run one at a time.
+Each one also declares its own explicit named bridge network for local isolation.
 
 ## Notes
 

@@ -44,6 +44,6 @@ app:
     admin:
       username: admin
       email: admin@erp.local
-      password: Admin@12345
+      password: ChangeMe123!
       tenant-id: ERP-DEFAULT
       display-name: Platform Admin

@@ -1,0 +1,105 @@
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 2
+
+image:
+  repository: ""
+  tag: latest
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+podAnnotations: {}
+podLabels: {}
+
+containerPort: 8080
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+env: []
+envFromSecrets: []
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+rollingUpdate:
+  maxUnavailable: 0
+  maxSurge: 1
+
+terminationGracePeriodSeconds: 45
+preStopSleepSeconds: 0
+
+tmpVolume:
+  enabled: true
+
+probes:
+  startup:
+    path: /actuator/health/liveness
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+  liveness:
+    path: /actuator/health/liveness
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /actuator/health/readiness
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  cpuUtilizationPercentage: 70
+  memoryUtilizationPercentage: 75
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+topologySpread:
+  enabled: true
+  maxSkew: 1
+  whenUnsatisfiable: DoNotSchedule
+
+ingress:
+  enabled: false
+  className: alb
+  annotations: {}
+  hosts:
+    - host: example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+networkPolicy:
+  enabled: false
+  ingressNamespaces: []
+
+externalSecret:
+  enabled: false
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secretsmanager
+  targetName: ""
+  data: []

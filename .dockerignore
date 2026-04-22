@@ -1,0 +1,9 @@
+.git
+.idea
+.env
+docs/
+infrastructure/
+monitoring/
+**/target/
+**/*.log
+**/*.zip

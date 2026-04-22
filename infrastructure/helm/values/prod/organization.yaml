@@ -1,0 +1,80 @@
+nameOverride: organization
+
+replicaCount: 2
+
+image:
+  repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/erp/organization
+  tag: prod-stable
+
+containerPort: 8083
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: container
+  - name: SERVER_PORT
+    value: "8083"
+  - name: DB_URL
+    value: jdbc:postgresql://organization-prod.proxy-abcdefghijkl.us-east-1.rds.amazonaws.com:5432/organization_db?sslmode=require
+  - name: REDIS_HOST
+    value: erp-prod.xxxxxx.use1.cache.amazonaws.com
+  - name: REDIS_PORT
+    value: "6379"
+  - name: SPRING_DATA_REDIS_SSL_ENABLED
+    value: "true"
+  - name: KAFKA_BOOTSTRAP_SERVERS
+    value: b-1.erp-prod.xxxxxx.c2.kafka.us-east-1.amazonaws.com:9096,b-2.erp-prod.xxxxxx.c2.kafka.us-east-1.amazonaws.com:9096,b-3.erp-prod.xxxxxx.c2.kafka.us-east-1.amazonaws.com:9096
+  - name: SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL
+    value: SASL_SSL
+  - name: SPRING_KAFKA_PROPERTIES_SASL_MECHANISM
+    value: SCRAM-SHA-512
+  - name: SPRING_KAFKA_PROPERTIES_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM
+    value: https
+  - name: APP_SECURITY_JWT_ISSUER
+    value: enterprise-platform
+
+envFromSecrets:
+  - organization-runtime
+
+resources:
+  requests:
+    cpu: 400m
+    memory: 768Mi
+  limits:
+    cpu: 1500m
+    memory: 1536Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  cpuUtilizationPercentage: 70
+  memoryUtilizationPercentage: 75
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  ingressNamespaces:
+    - erp-gateway
+
+externalSecret:
+  enabled: true
+  targetName: organization-runtime
+  data:
+    - secretKey: DB_USERNAME
+      remoteKey: /erp/prod/organization/runtime
+      property: DB_USERNAME
+    - secretKey: DB_PASSWORD
+      remoteKey: /erp/prod/organization/runtime
+      property: DB_PASSWORD
+    - secretKey: SPRING_DATA_REDIS_PASSWORD
+      remoteKey: /erp/prod/organization/runtime
+      property: SPRING_DATA_REDIS_PASSWORD
+    - secretKey: APP_SECURITY_JWT_SECRET
+      remoteKey: /erp/prod/organization/runtime
+      property: APP_SECURITY_JWT_SECRET
+    - secretKey: SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG
+      remoteKey: /erp/prod/organization/runtime
+      property: SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG

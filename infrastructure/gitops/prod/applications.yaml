@@ -1,0 +1,109 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: erp-bootstrap
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/HishabNikash.git
+    targetRevision: main
+    path: infrastructure/gitops/bootstrap
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/HishabNikash.git
+    targetRevision: main
+    path: infrastructure/helm/charts/erp-service
+    helm:
+      releaseName: gateway
+      valueFiles:
+        - ../../values/prod/gateway.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: erp-gateway
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: identity-access-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/HishabNikash.git
+    targetRevision: main
+    path: infrastructure/helm/charts/erp-service
+    helm:
+      releaseName: identity-access
+      valueFiles:
+        - ../../values/prod/identity-access.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: erp-identity-access
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: organization-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/HishabNikash.git
+    targetRevision: main
+    path: infrastructure/helm/charts/erp-service
+    helm:
+      releaseName: organization
+      valueFiles:
+        - ../../values/prod/organization.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: erp-organization
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: master-data-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/HishabNikash.git
+    targetRevision: main
+    path: infrastructure/helm/charts/erp-service
+    helm:
+      releaseName: master-data
+      valueFiles:
+        - ../../values/prod/master-data.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: erp-master-data
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

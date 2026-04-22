@@ -36,3 +36,6 @@ build/
 *.log
 *.err.log
 *.zip
+.env
+.env.local
+.env.*.local
