@@ -229,7 +229,7 @@ services:
       - erp-backend
 
   kafka:
-    image: bitnami/kafka:3.7
+    image: soldevelo/kafka:3.7
     restart: unless-stopped
     environment:
       KAFKA_CFG_NODE_ID: 1
